@@ -1,5 +1,8 @@
 # Cadence — Music Release Planner
 
+🔗 **Frontend repo:** [cadence-frontend](https://github.com/danielmuntyanu/cadence-music-release-planner-frontend)
+🔗 **Backend repo:** [cadence-backend](https://github.com/danielmuntyanu/cadence-music-release-planner-backend)
+
 ## Project Concept
 
 Cadence is a planning and coordination tool built for independent musicians and small labels to manage the full lifecycle of a music release — not just as a status tracker, but as a **timeline-driven planner** for everything that happens around a release: mastering deadlines, artwork approval, distribution windows, promo posts, and more.
