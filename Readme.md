@@ -1,6 +1,7 @@
 # Cadence — Music Release Planner
 
 🔗 **Frontend repo:** [cadence-frontend](https://github.com/danielmuntyanu/cadence-music-release-planner-frontend)
+
 🔗 **Backend repo:** [cadence-backend](https://github.com/danielmuntyanu/cadence-music-release-planner-backend)
 
 ## Project Concept
@@ -22,6 +23,40 @@ The application is a full-stack web app with a Vue 3 frontend and a Spring Boot 
 - **Frontend:** Vue 3, Vuetify, Tailwind CSS, Axios, Vitest, Playwright
 - **Backend:** Java 21 (LTS), Spring Boot, Spring Web, Spring Data JPA, JWT authentication
 - **Database:** MySQL
+
+## User Flow 
+
+```mermaid
+flowchart TD
+    A[Landing Page] --> B{Has account?}
+    B -- No --> C[Register]
+    B -- Yes --> D[Login]
+    C --> F[Dashboard]
+    D --> F[Dashboard]
+
+    F --> V1[Artists View]
+    F --> V2[Releases View]
+    F --> V3[Calendar View]
+    F --> V4[Tasks View]
+
+    V1 --> V1a[Add / edit artist]
+    V1 --> V1b[Open artist profile]
+    V1b --> V1c[Linked releases for this artist]
+
+    V2 --> V2a[Create new release]
+    V2 --> V2b[Open release detail]
+    V2b --> V2c[Timeline / milestones]
+    V2b --> V2d[Release task board]
+
+    V3 --> V3a[Milestones & tasks across all releases]
+    V3a --> V3b[Open task details]
+    V3a --> V3c[Open milestone details]
+    V3b --> V2d
+    V3c --> V2c
+
+    V4 --> V4a[Global task board across all releases]
+    V4a --> V2b
+```
 
 ## MVP Features
 
