@@ -45,7 +45,7 @@ public class JwtService {
             .build();
     }
 
-    public String getEmailFromToken(String token) {
+    public String getUsernameFromToken(String token) {
         Claims claims = Jwts.parser()
             .verifyWith(getSignKey())
             .build()
