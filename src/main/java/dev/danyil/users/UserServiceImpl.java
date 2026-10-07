@@ -1,6 +1,7 @@
 package dev.danyil.users;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +17,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserProfileRepository userProfileRepository;
     private UserRepository userRepository;
+    private PasswordEncoder passwordEncoder;
 
     @Override
     @Transactional
