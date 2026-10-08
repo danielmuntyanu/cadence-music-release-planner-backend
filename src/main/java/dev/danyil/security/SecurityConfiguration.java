@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -59,9 +60,12 @@ public class SecurityConfiguration {
                 .sessionAuthenticationStrategy(new NullAuthenticatedSessionStrategy()))
             .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class)
             
-            
             .authorizeHttpRequests(auth -> auth
-                .anyRequest().permitAll())
+                .requestMatchers(HttpMethod.POST, pre + "/users").permitAll()
+                .requestMatchers(pre + "/auth/login").permitAll()
+                .requestMatchers(pre + "/auth/refresh").permitAll()
+                
+                .anyRequest().authenticated())
 
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             

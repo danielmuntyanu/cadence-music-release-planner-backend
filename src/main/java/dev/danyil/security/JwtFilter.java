@@ -38,6 +38,16 @@ public class JwtFilter extends OncePerRequestFilter {
         this.resolver = resolver;
     }
 
+    private record PublicURL(String url, HttpMethod method) {
+    }
+
+    private final List<PublicURL> publicURIList = List.of(
+            new PublicURL("/api/v1/auth/login", HttpMethod.POST),
+            new PublicURL("/api/v1/auth/refresh", HttpMethod.GET),
+            new PublicURL("/api/v1/users", HttpMethod.POST)
+        );
+
+
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -55,7 +65,8 @@ public class JwtFilter extends OncePerRequestFilter {
                 method.equals(HttpMethod.GET.name()) &&
                 (token == null || token.isBlank()));
 
-        if (!sendCsrfOnly) {
+        if (!publicURIList.stream().anyMatch(pu -> pu.url().equals(uri) && pu.method().name().equals(method))
+                && !sendCsrfOnly) {
 
             try {
                 jwtService.validateJwtToken(token);
