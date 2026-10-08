@@ -59,7 +59,7 @@ public class UserController {
 
     @PatchMapping("{id}/make-locked")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<UserAdministrationResponseDTO> getByIdHandler(@PathVariable Long id, @RequestBody UserLockDTO dto) {
+    public ResponseEntity<UserAdministrationResponseDTO> updateLockedHandler(@PathVariable Long id, @RequestBody UserLockDTO dto) {
         return ResponseEntity.ok(userService.updateLocked(id, dto.makeLocked()));
     }
 
