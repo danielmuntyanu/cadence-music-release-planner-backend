@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import dev.danyil.security.exceptions.JwtNoExistException;
 import dev.danyil.users.exceptions.UserAlreadyExistsException;
+import dev.danyil.users.exceptions.UserNotFoundException;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 
@@ -21,30 +22,31 @@ public class GlobalExceptionHandler {
     // AUTHENTICATION
 
     @ExceptionHandler(BadCredentialsException.class)
-    @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public ResponseEntity<String> handleBadCredentialsException(
             BadCredentialsException exception) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(exception.getMessage());
     }
 
     @ExceptionHandler(JwtNoExistException.class)
-    @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public ResponseEntity<String> handleJwtNoExistException(JwtNoExistException exception) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Authentication failed: " + exception.getMessage());
     }
 
     @ExceptionHandler(ExpiredJwtException.class)
-    @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public ResponseEntity<String> handleExpiredJwtException(ExpiredJwtException exception) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Authentication failed: " + exception.getMessage());
     }
 
     @ExceptionHandler(JwtException.class)
-    @ResponseStatus(HttpStatus.FORBIDDEN)
     public ResponseEntity<String> handleJwtException(JwtException exception) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Authentication failed. " + exception.getMessage());
     }
 
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleUserNotFoundException(UserNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("username", e.getUsername(), "message", e.getMessage()));
+    }
 
     // REGISTRATION
 
@@ -53,6 +55,8 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(Map.of("field", e.getField(), "message", e.getMessage()));
     }
+
+    // GENERIC
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleGenericException(Exception e) {
