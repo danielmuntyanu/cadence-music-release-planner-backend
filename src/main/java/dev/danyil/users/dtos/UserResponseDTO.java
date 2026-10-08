@@ -1,5 +1,8 @@
 package dev.danyil.users.dtos;
 
+import lombok.Builder;
+
+@Builder 
 public record UserResponseDTO(
     Long id,
     String username,
