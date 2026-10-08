@@ -5,8 +5,8 @@ import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import dev.danyil.security.exceptions.JwtNoExistException;
@@ -22,6 +22,12 @@ public class GlobalExceptionHandler {
 
 
     // AUTHENTICATION
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<String> handleValidationException(MethodArgumentNotValidException exception) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body("Validation failed: " + exception.getFieldError().getDefaultMessage());
+    }
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<String> handleBadCredentialsException(

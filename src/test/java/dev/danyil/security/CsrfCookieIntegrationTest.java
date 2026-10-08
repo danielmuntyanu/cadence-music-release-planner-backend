@@ -8,7 +8,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.Set;
-import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,8 +29,6 @@ import dev.danyil.users.UserRepository;
 import dev.danyil.users.UserProfileRepository;
 import jakarta.servlet.http.Cookie;
 
-// Contexto propio (TestPropertySource) para no compartir el filtro CSRF con
-// los tests que usan .with(csrf()), que sustituye el repositorio de tokens.
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @TestPropertySource(properties = "csrf-cookie-test=true")
