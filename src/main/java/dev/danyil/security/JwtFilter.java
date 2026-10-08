@@ -44,7 +44,7 @@ public class JwtFilter extends OncePerRequestFilter {
     private final List<PublicURL> publicURIList = List.of(
             new PublicURL("/api/v1/auth/login", HttpMethod.POST),
             new PublicURL("/api/v1/auth/logout", HttpMethod.POST),
-            new PublicURL("/api/v1/auth/refresh", HttpMethod.GET),
+            new PublicURL("/api/v1/auth/refresh", HttpMethod.POST),
             new PublicURL("/api/v1/users", HttpMethod.POST)
         );
 

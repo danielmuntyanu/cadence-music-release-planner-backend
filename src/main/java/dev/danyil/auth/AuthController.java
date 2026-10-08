@@ -27,8 +27,8 @@ import jakarta.servlet.http.Cookie;
 @RequiredArgsConstructor 
 public class AuthController {
 
-    private AuthService authService;
-    private UserService userService;
+    private final AuthService authService;
+    private final UserService userService;
     
     @Value("/${api-endpoint}/auth/refresh")
     private String refreshPath;

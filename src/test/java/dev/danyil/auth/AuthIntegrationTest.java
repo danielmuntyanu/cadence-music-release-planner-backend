@@ -127,14 +127,16 @@ class AuthIntegrationTest {
     void logout_withValidToken_returns204() throws Exception {
         String token = jwtService.generateAuthToken(user.getUsername(), "USER").token();
 
-        mockMvc.perform(post(apiEndpoint + "/auth/logout")
+        mockMvc.perform(post(apiEndpoint + "/auth/logout")        
+                .with(csrf())
                 .cookie(new Cookie("access_token", token)))
             .andExpect(status().isNoContent());
     }
 
     @Test
     void logout_withoutToken_returns204() throws Exception {
-        mockMvc.perform(post(apiEndpoint + "/auth/logout"))
+        mockMvc.perform(post(apiEndpoint + "/auth/logout")
+                .with(csrf()))
             .andExpect(status().isNoContent());
     }
 
@@ -143,6 +145,7 @@ class AuthIntegrationTest {
         String token = jwtService.generateAuthToken(user.getUsername(), "USER").token();
 
         mockMvc.perform(post(apiEndpoint + "/auth/logout")
+                .with(csrf())
                 .cookie(new Cookie("access_token", token)))
             .andExpect(cookie().exists("access_token"))
                 .andExpect(cookie().value("access_token", ""))
@@ -152,9 +155,10 @@ class AuthIntegrationTest {
 
     @Test
     void refresh_withValidRefreshToken_returns204AndSetsNewCookies() throws Exception {
-        String refreshToken = jwtService.generateAuthToken(user.getEmail(), "ROLE_USER").refreshToken();
+        String refreshToken = jwtService.generateAuthToken(user.getUsername(), "USER").refreshToken();
 
         mockMvc.perform(post(apiEndpoint + "/auth/refresh")
+                .with(csrf())
                 .cookie(new Cookie("refresh_token", refreshToken)))
             .andExpect(status().isNoContent())
             .andExpect(cookie().exists("access_token"))
@@ -163,18 +167,19 @@ class AuthIntegrationTest {
 
     @Test
     void refresh_withoutRefreshToken_returnsError() throws Exception {
-        mockMvc.perform(post(apiEndpoint + "/auth/refresh"))
+        mockMvc.perform(post(apiEndpoint + "/auth/refresh")
+                .with(csrf()))
             .andExpect(status().isForbidden());
     }
 
     @Test
     void me_withValidToken_returns200WithUserData() throws Exception {
-        String token = jwtService.generateAuthToken(user.getEmail(), "ROLE_USER").token();
+        String token = jwtService.generateAuthToken(user.getUsername(), "USER").token();
 
         mockMvc.perform(get(apiEndpoint + "/auth/me")
                 .cookie(new Cookie("access_token", token)))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.email").value(user.getEmail()));
+            .andExpect(jsonPath("$.username").value(user.getUsername()));
     }
 
     @Test
