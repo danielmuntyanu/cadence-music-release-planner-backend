@@ -1,9 +1,11 @@
 package dev.danyil.auth;
 
+import dev.danyil.users.UserServiceImpl;
 import java.time.Duration;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,7 +16,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import dev.danyil.auth.dtos.CredentialsDTO;
 import dev.danyil.contracts.AuthService;
+import dev.danyil.contracts.UserService;
 import dev.danyil.security.dtos.JwtAuthenticationDTO;
+import dev.danyil.users.dtos.UserCurrentResponseDTO;
 import dev.danyil.users.dtos.UserResponseDTO;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -26,7 +30,10 @@ import jakarta.servlet.http.Cookie;
 @RequiredArgsConstructor 
 public class AuthController {
 
+    private final UserServiceImpl userServiceImpl;
+
     private AuthService authService;
+    private UserService userService;
     
     @Value("/${api-endpoint}/auth/refresh")
     private String refreshPath;
@@ -41,11 +48,11 @@ public class AuthController {
     private int refreshTokenDurationDays;
 
     @PostMapping("login")
-    public ResponseEntity<UserResponseDTO> loginHandler(@RequestBody @Valid CredentialsDTO credentials, HttpServletResponse response) {
+    public ResponseEntity<UserCurrentResponseDTO> loginHandler(@RequestBody @Valid CredentialsDTO credentials, HttpServletResponse response) {
         
-        UserResponseDTO userDto = authService.login(credentials);
+        UserCurrentResponseDTO userDto = authService.login(credentials);
         
-        JwtAuthenticationDTO authDTO = authService.getAuth(userDto.email(), userDto.roles());
+        JwtAuthenticationDTO authDTO = authService.getAuth(userDto.username(), userDto.roles());
         
         Cookie cookieAccess = generateCookie("access_token", authDTO.token(), "/");
         Cookie cookieRefresh = generateCookie("refresh_token", authDTO.refreshToken(), refreshPath);
@@ -82,12 +89,11 @@ public class AuthController {
     }
 
     @GetMapping("me")
-    public ResponseEntity<UserResponseDTO> getMeHandler(@AuthenticationPrincipal CustomUserDetails userPrincipal) {
-        return ResponseEntity.ok(authService.getMe(userPrincipal.getUsername()));
+    public ResponseEntity<UserCurrentResponseDTO> getMeHandler(@AuthenticationPrincipal CustomUserDetails userPrincipal) {
+        return ResponseEntity.ok(userService.getCurrent(userPrincipal.getUsername()));
     }
 
     private Cookie generateCookie(String key, String value, String path) {
-        
         int maxAge;
         switch (key) {
             case "access_token" -> maxAge = (int) Duration.ofMinutes(accessTokenDurationMinutes).toSeconds();

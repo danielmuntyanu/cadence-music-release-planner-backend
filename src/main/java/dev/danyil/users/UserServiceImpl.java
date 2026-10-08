@@ -7,7 +7,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import dev.danyil.contracts.UserService;
 import dev.danyil.enums.UserRole;
+import dev.danyil.mappers.UserMapper;
 import dev.danyil.users.dtos.UserRequestCreateDTO;
+import dev.danyil.users.dtos.UserResponseDTO;
 import dev.danyil.users.exceptions.UserAlreadyExistsException;
 import lombok.RequiredArgsConstructor;
 
@@ -18,10 +20,11 @@ public class UserServiceImpl implements UserService {
     private final UserProfileRepository userProfileRepository;
     private UserRepository userRepository;
     private PasswordEncoder passwordEncoder;
+    private UserMapper userMapper;
 
     @Override
     @Transactional
-    public void register(UserRequestCreateDTO req) {
+    public UserResponseDTO register(UserRequestCreateDTO req) {
         
         String username = req.username().trim();
         String email = req.email().trim().toLowerCase();
@@ -54,6 +57,8 @@ public class UserServiceImpl implements UserService {
                         : req.username());
         userProfileRepository.save(profile);
         
+        return userMapper.toResponse(user, profile);
+
     }
 
 }

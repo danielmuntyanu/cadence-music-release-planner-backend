@@ -1,5 +1,14 @@
 package dev.danyil.auth.dtos;
 
-public record CredentialsDTO() {
+import jakarta.validation.constraints.NotBlank;
+
+public record CredentialsDTO(
+    @NotBlank 
+    String username,
+
+    @NotBlank 
+    String password
+) {
 
 }
+
