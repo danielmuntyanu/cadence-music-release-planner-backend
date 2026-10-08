@@ -4,6 +4,7 @@ import java.time.Duration;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -78,6 +79,11 @@ public class AuthController {
         response.addCookie(cookieRefresh);
 
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("me")
+    public ResponseEntity<UserResponseDTO> getMeHandler(@AuthenticationPrincipal CustomUserDetails userPrincipal) {
+        return ResponseEntity.ok(authService.getMe(userPrincipal.getUsername()));
     }
 
     private Cookie generateCookie(String key, String value, String path) {
