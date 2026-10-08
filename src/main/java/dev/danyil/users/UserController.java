@@ -2,13 +2,17 @@ package dev.danyil.users;
 
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import dev.danyil.contracts.UserService;
 import dev.danyil.users.dtos.UserAdministrationResponseDTO;
 import dev.danyil.users.dtos.UserLockDTO;
 import dev.danyil.users.dtos.UserRequestCreateDTO;
+import dev.danyil.users.dtos.UserResponseDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
+import java.net.URI;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -29,9 +33,16 @@ public class UserController {
     private final UserService userService;
 
     @PostMapping("")
-    public ResponseEntity<Void> registrationHandler(@Valid @RequestBody UserRequestCreateDTO dto) {
-        userService.register(dto);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<UserResponseDTO> registrationHandler(@Valid @RequestBody UserRequestCreateDTO dto) {
+        UserResponseDTO created = userService.register(dto);
+
+        URI location = ServletUriComponentsBuilder
+            .fromCurrentRequest()
+            .path("/{id}")
+            .buildAndExpand(created.id())
+            .toUri();
+
+        return ResponseEntity.created(location).body(created);
     }
 
     @GetMapping("")

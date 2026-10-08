@@ -44,8 +44,8 @@ public class UserServiceImpl implements UserService {
         }
 
         UserEntity user = new UserEntity();
-        user.setUsername(req.username());
-        user.setEmail(req.email());
+        user.setUsername(username);
+        user.setEmail(email);
         user.setPasswordHash(passwordEncoder.encode(req.password()));
         user.getRoles().add(UserRole.USER);
 
@@ -60,8 +60,8 @@ public class UserServiceImpl implements UserService {
         profile.setBio(req.bio());
         profile.setDisplayName(
                 req.displayName() != null && !req.displayName().isBlank()
-                        ? req.displayName()
-                        : req.username());
+                        ? req.displayName().trim()
+                        : username);
         userProfileRepository.save(profile);
         
         return userMapper.toResponse(user, profile);
@@ -80,12 +80,14 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<UserAdministrationResponseDTO> getAll(Pageable pageable) {
         Page<UserEntity> pageEntities = userRepository.findAll(pageable);
         return pageEntities.map(userMapper::toAdministrationResponse);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public UserAdministrationResponseDTO getById(Long id) {
         UserEntity user = userRepository.findById(id)
             .orElseThrow(() -> new UserNotFoundException(id));
@@ -93,14 +95,14 @@ public class UserServiceImpl implements UserService {
         return userMapper.toAdministrationResponse(user);
     }
 
+    @Override 
+    @Transactional
     public UserAdministrationResponseDTO updateLocked(Long id, boolean makeLocked) {
         UserEntity user = userRepository.findById(id)
             .orElseThrow(() -> new UserNotFoundException(id));
 
         user.setLocked(makeLocked);
-        UserEntity savedUser = userRepository.save(user);
-
-        return userMapper.toAdministrationResponse(savedUser);
+        return userMapper.toAdministrationResponse(user);
     }
 
 }
