@@ -93,8 +93,14 @@ public class UserServiceImpl implements UserService {
         return userMapper.toAdministrationResponse(user);
     }
 
-    
+    public UserAdministrationResponseDTO updateLocked(Long id, boolean makeLocked) {
+        UserEntity user = userRepository.findById(id)
+            .orElseThrow(() -> new UserNotFoundException(id));
 
-    
+        user.setLocked(makeLocked);
+        UserEntity savedUser = userRepository.save(user);
+
+        return userMapper.toAdministrationResponse(savedUser);
+    }
 
 }

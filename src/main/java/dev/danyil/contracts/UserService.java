@@ -11,7 +11,6 @@ public interface UserService extends GenericGetService<UserAdministrationRespons
     
     UserCurrentResponseDTO getCurrent(String username);
 
-
-
+    UserAdministrationResponseDTO updateLocked(Long id, boolean makeLocked);
 
 }

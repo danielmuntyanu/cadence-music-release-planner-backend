@@ -103,11 +103,11 @@ class CsrfCookieIntegrationTest {
         Cookie accessToken = login.getResponse().getCookie("access_token");
         Cookie csrfToken = login.getResponse().getCookie("XSRF-TOKEN");
 
-        mockMvc.perform(patch(apiEndpoint + "/users/" + 100L)
+        mockMvc.perform(patch(apiEndpoint + "/users/" + 100 + "/make-locked")
                 .cookie(accessToken, csrfToken)
                 .header("X-XSRF-TOKEN", csrfToken.getValue())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"locked\": true}"))
+                .content("{\"make_locked\": true}"))
             .andExpect(status().isNotFound());
     }
 

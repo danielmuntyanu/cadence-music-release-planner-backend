@@ -65,6 +65,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<Map<String, String>> handleUserNotFoundException(UserNotFoundException e) {
+        System.out.println("\n\n PIPISKA \n\n");
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(Map.of("id" , e.getId().toString(), "username", e.getUsername(), "message", e.getMessage()));
     }
