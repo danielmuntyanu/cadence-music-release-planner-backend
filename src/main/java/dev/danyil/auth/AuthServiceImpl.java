@@ -1,6 +1,8 @@
 package dev.danyil.auth;
 
 import dev.danyil.mappers.UserMapper;
+
+import java.util.HashSet;
 import java.util.Set;
 
 import org.springframework.security.authentication.BadCredentialsException;
@@ -18,7 +20,7 @@ import dev.danyil.users.UserProfileRepository;
 import dev.danyil.users.UserRepository;
 import dev.danyil.users.dtos.UserCurrentResponseDTO;
 import dev.danyil.users.exceptions.ProfileNotFoundException;
-import dev.danyil.users.exceptions.UserNotFoundException;
+import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
 
 @Service 
@@ -55,8 +57,31 @@ public class AuthServiceImpl implements AuthService{
 
     @Override
     public JwtAuthenticationDTO updateAuth(String oldRefreshToken) {
-        // TODO Auto-generated method stub
-        return null;
+        if (oldRefreshToken == null || oldRefreshToken.isBlank()) {
+            throw new JwtException("Invalid refresh token: token doesn't exist");
+        }
+        
+        jwtService.validateJwtToken(oldRefreshToken);
+            
+        String tokenUsername = jwtService.getUsernameFromToken(oldRefreshToken);
+        Set<String> tokenRoles = jwtService.getRolesFromToken(oldRefreshToken);
+
+        UserEntity user = userRepository.findByUsername(tokenUsername).orElseThrow(
+            () -> new JwtException("Invalid refresh token: user with username " + tokenUsername + " doesn't exist")
+        );
+        
+        UserProfileEntity profile = userProfileRepository.findById(user.getId()).orElseThrow(
+            () -> new JwtException("Invalid refresh token: userProfile with id " + user.getId() + " doesn't exist")
+        );
+
+        UserCurrentResponseDTO userDTO = userMapper.toCurrentUser(user, profile);
+
+        Set<String> userRoles = new HashSet<>(userDTO.roles());
+        if (!tokenRoles.equals(userRoles)) {
+            throw new JwtException("Invalid refresh token: roles mismatch");
+        }
+
+        return jwtService.refreshBaseToken(tokenUsername, String.join(", ", userRoles), oldRefreshToken);
     }
     
 }

@@ -1,6 +1,5 @@
 package dev.danyil.contracts;
 
-import java.util.List;
 import java.util.Set;
 
 import dev.danyil.auth.dtos.CredentialsDTO;
