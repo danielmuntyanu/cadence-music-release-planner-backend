@@ -11,6 +11,7 @@ import dev.danyil.mappers.UserMapper;
 import dev.danyil.users.dtos.UserCurrentResponseDTO;
 import dev.danyil.users.dtos.UserRequestCreateDTO;
 import dev.danyil.users.dtos.UserResponseDTO;
+import dev.danyil.users.exceptions.ProfileNotFoundException;
 import dev.danyil.users.exceptions.UserAlreadyExistsException;
 import dev.danyil.users.exceptions.UserNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -69,7 +70,7 @@ public class UserServiceImpl implements UserService {
             .orElseThrow(() -> new UserNotFoundException(username));
 
         UserProfileEntity profile = userProfileRepository.findById(user.getId())
-            .orElseThrow(() -> new UserNotFoundException(username));
+            .orElseThrow(() -> new ProfileNotFoundException(user.getId()));
 
         return userMapper.toCurrentUser(user, profile);
     }

@@ -5,7 +5,6 @@ import java.time.Duration;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,7 +18,6 @@ import dev.danyil.contracts.AuthService;
 import dev.danyil.contracts.UserService;
 import dev.danyil.security.dtos.JwtAuthenticationDTO;
 import dev.danyil.users.dtos.UserCurrentResponseDTO;
-import dev.danyil.users.dtos.UserResponseDTO;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,8 +27,6 @@ import jakarta.servlet.http.Cookie;
 @RequestMapping(path = "${api-endpoint}/auth")
 @RequiredArgsConstructor 
 public class AuthController {
-
-    private final UserServiceImpl userServiceImpl;
 
     private AuthService authService;
     private UserService userService;

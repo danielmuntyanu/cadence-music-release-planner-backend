@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import dev.danyil.security.exceptions.JwtNoExistException;
+import dev.danyil.users.exceptions.ProfileNotFoundException;
 import dev.danyil.users.exceptions.UserAlreadyExistsException;
 import dev.danyil.users.exceptions.UserNotFoundException;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -46,6 +47,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleUserNotFoundException(UserNotFoundException e) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(Map.of("username", e.getUsername(), "message", e.getMessage()));
+    }
+
+    @ExceptionHandler(ProfileNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleProfileNotFoundException(ProfileNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("id", e.getId().toString(), "message", e.getMessage()));
     }
 
     // REGISTRATION
