@@ -1,6 +1,5 @@
 package dev.danyil.auth;
 
-import dev.danyil.users.UserServiceImpl;
 import java.time.Duration;
 
 import org.springframework.beans.factory.annotation.Value;

@@ -3,7 +3,7 @@ package dev.danyil.security;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
-import java.util.List;
+import java.util.Set;
 
 import javax.crypto.SecretKey;
 
@@ -55,7 +55,7 @@ public class JwtService {
         return claims.getSubject();
     }
 
-    public List<String> getRolesFromToken(String token) {
+    public Set<String> getRolesFromToken(String token) {
         Claims claims = Jwts.parser()
             .verifyWith(getSignKey())
             .build()
@@ -63,7 +63,7 @@ public class JwtService {
             .getPayload();
 
         String rolesString = claims.get("role", String.class);
-        return List.of(rolesString.split(", "));
+        return Set.of(rolesString.split(", "));
     }
 
     public boolean validateJwtToken(String token) {

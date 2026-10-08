@@ -49,8 +49,8 @@ public class AuthServiceImpl implements AuthService{
 
     @Override
     public JwtAuthenticationDTO getAuth(String username, Set<String> roles) {
-        // TODO Auto-generated method stub
-        return null;
+        String rolesString = String.join(", ", roles);
+        return jwtService.generateAuthToken(username, rolesString);
     }
 
     @Override
