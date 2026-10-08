@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import dev.danyil.security.exceptions.JwtNoExistException;
@@ -65,9 +66,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<Map<String, String>> handleUserNotFoundException(UserNotFoundException e) {
-        System.out.println("\n\n PIPISKA \n\n");
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Map.of("id" , e.getId().toString(), "username", e.getUsername(), "message", e.getMessage()));
+                .body(Map.of("id" , e.getId().toString(), "message", e.getMessage()));
     }
 
     // GENERIC
