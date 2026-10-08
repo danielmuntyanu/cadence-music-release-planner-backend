@@ -57,7 +57,7 @@ public class AuthController {
         return ResponseEntity.ok(userDto);
     }
 
-    @GetMapping("logout")
+    @PostMapping("logout")
     public ResponseEntity<Void> logoutHandler(HttpServletResponse response) {
         
         Cookie cookieAccess = generateCookie("access_token", "", "/");
@@ -68,7 +68,7 @@ public class AuthController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("refresh")
+    @PostMapping("refresh")
     public ResponseEntity<Void> refreshHandler(
         @CookieValue(name = "refresh_token", required = false) String refreshToken, 
         HttpServletResponse response

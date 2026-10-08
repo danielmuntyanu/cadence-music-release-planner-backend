@@ -1,6 +1,7 @@
 package dev.danyil.users;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -11,6 +12,7 @@ import lombok.Setter;
 public class UserProfileEntity {
 
     @Id
+    @Setter(AccessLevel.NONE)
     private Long id; // same as in UserEntity
 
     @OneToOne(fetch = FetchType.LAZY, optional = false)

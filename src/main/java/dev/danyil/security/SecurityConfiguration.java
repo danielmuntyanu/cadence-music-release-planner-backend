@@ -62,8 +62,7 @@ public class SecurityConfiguration {
             
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.POST, pre + "/users").permitAll()
-                .requestMatchers(pre + "/auth/login").permitAll()
-                .requestMatchers(pre + "/auth/refresh").permitAll()
+                .requestMatchers(pre + "/auth/**").permitAll()
                 
                 .anyRequest().authenticated())
 
