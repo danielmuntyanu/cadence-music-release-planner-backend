@@ -4,6 +4,7 @@ import java.time.Duration;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -50,6 +51,17 @@ public class AuthController {
         response.addCookie(cookieRefresh);
         
         return ResponseEntity.ok(userDto);
+    }
+
+    @GetMapping("logout")
+    public ResponseEntity<Void> logoutHandler(HttpServletResponse response) {
+        
+        Cookie cookieAccess = generateCookie("access_token", "", "/");
+        Cookie cookieRefresh = generateCookie("refresh_token", "", refreshPath);
+        response.addCookie(cookieAccess);
+        response.addCookie(cookieRefresh);
+        
+        return ResponseEntity.noContent().build();
     }
 
     private Cookie generateCookie(String key, String value, String path) {
