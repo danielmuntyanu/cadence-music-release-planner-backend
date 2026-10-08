@@ -1,6 +1,8 @@
 package dev.danyil.users;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -8,9 +10,11 @@ import org.springframework.transaction.annotation.Transactional;
 import dev.danyil.contracts.UserService;
 import dev.danyil.enums.UserRole;
 import dev.danyil.mappers.UserMapper;
+import dev.danyil.users.dtos.UserAdministrationResponseDTO;
 import dev.danyil.users.dtos.UserCurrentResponseDTO;
 import dev.danyil.users.dtos.UserRequestCreateDTO;
 import dev.danyil.users.dtos.UserResponseDTO;
+import dev.danyil.users.exceptions.CurrentUserNotFoundException;
 import dev.danyil.users.exceptions.ProfileNotFoundException;
 import dev.danyil.users.exceptions.UserAlreadyExistsException;
 import dev.danyil.users.exceptions.UserNotFoundException;
@@ -67,13 +71,29 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     public UserCurrentResponseDTO getCurrent(String username) {
         UserEntity user = userRepository.findByUsername(username)
-            .orElseThrow(() -> new UserNotFoundException(username));
+            .orElseThrow(() -> new CurrentUserNotFoundException(username));
 
         UserProfileEntity profile = userProfileRepository.findById(user.getId())
             .orElseThrow(() -> new ProfileNotFoundException(user.getId()));
 
         return userMapper.toCurrentUser(user, profile);
     }
+
+    @Override
+    public Page<UserAdministrationResponseDTO> getAll(Pageable pageable) {
+        Page<UserEntity> pageEntities = userRepository.findAll(pageable);
+        return pageEntities.map(userMapper::toAdministrationResponse);
+    }
+
+    @Override
+    public UserAdministrationResponseDTO getById(Long id) {
+        UserEntity user = userRepository.findById(id)
+            .orElseThrow(() -> new UserNotFoundException(id));
+
+        return userMapper.toAdministrationResponse(user);
+    }
+
+    
 
     
 

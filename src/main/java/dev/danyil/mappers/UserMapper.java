@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 
 import dev.danyil.users.UserEntity;
 import dev.danyil.users.UserProfileEntity;
+import dev.danyil.users.dtos.UserAdministrationResponseDTO;
 import dev.danyil.users.dtos.UserCurrentResponseDTO;
 import dev.danyil.users.dtos.UserResponseDTO;
 
@@ -30,6 +31,22 @@ public class UserMapper {
             .displayName(profile.getDisplayName())
             .avatarUrl(profile.getAvatarUrl())
             .bio(profile.getBio())
+            .roles(
+                user.getRoles().stream()
+                    .map(Enum::name)
+                    .collect(Collectors.toSet())
+            )
+        .build();
+    }
+
+    public UserAdministrationResponseDTO toAdministrationResponse(UserEntity user) {
+        return UserAdministrationResponseDTO.builder()
+            .id(user.getId())
+            .username(user.getUsername())
+            .email(user.getEmail())
+            .enabled(user.isEnabled())
+            .locked(user.isLocked())
+            .createdAt(user.getCreatedAt())
             .roles(
                 user.getRoles().stream()
                     .map(Enum::name)
