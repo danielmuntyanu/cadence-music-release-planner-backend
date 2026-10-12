@@ -71,11 +71,8 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public UserCurrentResponseDTO getCurrent(String username) {
-        UserEntity user = userRepository.findByUsername(username)
-            .orElseThrow(() -> new CurrentUserNotFoundException(username));
-
-        UserProfileEntity profile = userProfileRepository.findById(user.getId())
-            .orElseThrow(() -> new ProfileNotFoundException(user.getId()));
+        UserEntity user = findUser(username);
+        UserProfileEntity profile = findProfile(user.getId());
 
         return userMapper.toCurrentUser(user, profile);
     }
@@ -90,8 +87,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public UserAdministrationResponseDTO getById(Long id) {
-        UserEntity user = userRepository.findById(id)
-            .orElseThrow(() -> new UserNotFoundException(id));
+        UserEntity user = findUser(id);
 
         return userMapper.toAdministrationResponse(user);
     }
@@ -99,8 +95,7 @@ public class UserServiceImpl implements UserService {
     @Override 
     @Transactional
     public UserAdministrationResponseDTO updateLocked(Long id, boolean makeLocked) {
-        UserEntity user = userRepository.findById(id)
-            .orElseThrow(() -> new UserNotFoundException(id));
+        UserEntity user = findUser(id);
 
         user.setLocked(makeLocked);
         return userMapper.toAdministrationResponse(user);
@@ -109,11 +104,8 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserCurrentResponseDTO updateProfile(Long id, UserRequestUpdateDTO dto) {
-        UserEntity user = userRepository.findById(id)
-            .orElseThrow(() -> new UserNotFoundException(id));
-
-        UserProfileEntity profile = userProfileRepository.findById(user.getId())
-            .orElseThrow(() -> new ProfileNotFoundException(user.getId()));
+        UserEntity user = findUser(id);
+        UserProfileEntity profile = findProfile(user.getId());
 
         if (toUpdate(dto.username())) {
             user.setUsername(dto.username());
@@ -134,9 +126,33 @@ public class UserServiceImpl implements UserService {
         return userMapper.toCurrentUser(user, profile);
     }
 
+    @Override
+    @Transactional
+    public void deleteUser(Long id) {
+        UserEntity user = findUser(id);
+        UserProfileEntity profile = findProfile(user.getId());
+
+        userProfileRepository.delete(profile);
+        userRepository.delete(user);
+    }
+
+    private UserEntity findUser(Long id) {
+        return userRepository.findById(id)
+            .orElseThrow(() -> new UserNotFoundException(id));
+    }
+
+    private UserEntity findUser(String username) {
+        return userRepository.findByUsername(username)
+            .orElseThrow(() -> new CurrentUserNotFoundException(username));
+    }
+
+    private UserProfileEntity findProfile(Long id) {
+        return userProfileRepository.findById(id)
+            .orElseThrow(() -> new ProfileNotFoundException(id));
+    }
+    
     private boolean toUpdate(String field) {
         return field != null && field instanceof String && !field.isBlank();
     }
-    
 
 }

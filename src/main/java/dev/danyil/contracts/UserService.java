@@ -16,4 +16,5 @@ public interface UserService extends GenericGetService<UserAdministrationRespons
 
     UserCurrentResponseDTO updateProfile(Long id, UserRequestUpdateDTO dto);
 
+    void deleteUser(Long id);
 }
