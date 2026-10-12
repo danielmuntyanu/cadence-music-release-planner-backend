@@ -13,6 +13,7 @@ import dev.danyil.mappers.UserMapper;
 import dev.danyil.users.dtos.UserAdministrationResponseDTO;
 import dev.danyil.users.dtos.UserCurrentResponseDTO;
 import dev.danyil.users.dtos.UserRequestCreateDTO;
+import dev.danyil.users.dtos.UserRequestUpdateDTO;
 import dev.danyil.users.dtos.UserResponseDTO;
 import dev.danyil.users.exceptions.CurrentUserNotFoundException;
 import dev.danyil.users.exceptions.ProfileNotFoundException;
@@ -104,5 +105,38 @@ public class UserServiceImpl implements UserService {
         user.setLocked(makeLocked);
         return userMapper.toAdministrationResponse(user);
     }
+
+    @Override
+    @Transactional
+    public UserCurrentResponseDTO updateProfile(Long id, UserRequestUpdateDTO dto) {
+        UserEntity user = userRepository.findById(id)
+            .orElseThrow(() -> new UserNotFoundException(id));
+
+        UserProfileEntity profile = userProfileRepository.findById(user.getId())
+            .orElseThrow(() -> new ProfileNotFoundException(user.getId()));
+
+        if (toUpdate(dto.username())) {
+            user.setUsername(dto.username());
+        }
+
+        if (toUpdate(dto.email())) {
+            user.setEmail(dto.email());
+        }
+
+        if (toUpdate(dto.displayName())) {
+            profile.setDisplayName(dto.displayName());
+        }
+
+        if (toUpdate(dto.bio())) {
+            profile.setBio(dto.bio());
+        }
+    
+        return userMapper.toCurrentUser(user, profile);
+    }
+
+    private boolean toUpdate(String field) {
+        return field != null && field instanceof String && !field.isBlank();
+    }
+    
 
 }
