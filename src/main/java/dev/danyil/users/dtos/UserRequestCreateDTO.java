@@ -1,7 +1,5 @@
 package dev.danyil.users.dtos;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 import jakarta.validation.constraints.*;
 
 public record UserRequestCreateDTO(
@@ -20,7 +18,6 @@ public record UserRequestCreateDTO(
         String password,
 
         @Size(max = 100) 
-        @JsonProperty("display_name")
         String displayName,
         
         @Size(max = 500) 
