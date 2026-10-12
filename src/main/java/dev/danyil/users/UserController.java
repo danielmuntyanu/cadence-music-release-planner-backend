@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 
@@ -81,6 +82,14 @@ public class UserController {
         return ResponseEntity.ok(userService.updateProfile(user.getId(), dto));
     }
 
+    @PutMapping("me/password")
+    public ResponseEntity<Void> updatePasswordHandler(
+            @AuthenticationPrincipal CustomUserDetails user,
+            @Valid @RequestBody UserRequestPasswordDTO dto) {
+        userService.updatePassword(user.getId(), dto);
+        return ResponseEntity.noContent().build();
+    }
+    
     @DeleteMapping("me")
     public ResponseEntity<Void> deleteUserHandler(
             @AuthenticationPrincipal CustomUserDetails user) {
