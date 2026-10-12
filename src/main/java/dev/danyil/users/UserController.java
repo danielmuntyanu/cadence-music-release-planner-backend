@@ -74,9 +74,11 @@ public class UserController {
     // ### USER SETTINGS ###
 
     @PatchMapping("me")
-    public ResponseEntity<UserCurrentResponseDTO> updateProfileHandler(@AuthenticationPrincipal CustomUserDetails user, @RequestBody UserRequestUpdateDTO dto) {
+    public ResponseEntity<UserCurrentResponseDTO> updateProfileHandler(
+            @AuthenticationPrincipal CustomUserDetails user,
+            @Valid @RequestBody UserRequestUpdateDTO dto) {
         return ResponseEntity.ok(userService.updateProfile(user.getId(), dto));
     }
 
-    
+
 }
