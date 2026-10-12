@@ -3,6 +3,7 @@ package dev.danyil.users;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,6 +14,7 @@ import dev.danyil.mappers.UserMapper;
 import dev.danyil.users.dtos.UserAdministrationResponseDTO;
 import dev.danyil.users.dtos.UserCurrentResponseDTO;
 import dev.danyil.users.dtos.UserRequestCreateDTO;
+import dev.danyil.users.dtos.UserRequestPasswordDTO;
 import dev.danyil.users.dtos.UserRequestUpdateDTO;
 import dev.danyil.users.dtos.UserResponseDTO;
 import dev.danyil.users.exceptions.CurrentUserNotFoundException;
@@ -135,6 +137,21 @@ public class UserServiceImpl implements UserService {
         userProfileRepository.delete(profile);
         userRepository.delete(user);
     }
+
+    @Override
+    @Transactional
+    public void updatePassword(Long id, UserRequestPasswordDTO dto) { 
+        UserEntity user = findUser(id);
+
+        if (!passwordEncoder.matches(dto.currentPassword(), user.getPasswordHash())) {
+            throw new BadCredentialsException("Wrong current password");
+        } 
+
+        user.setPasswordHash(passwordEncoder.encode(dto.newPassword()));
+    }
+
+
+    // ### HELPERS ###
 
     private UserEntity findUser(Long id) {
         return userRepository.findById(id)

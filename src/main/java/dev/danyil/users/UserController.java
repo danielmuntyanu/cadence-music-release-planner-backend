@@ -10,6 +10,7 @@ import dev.danyil.users.dtos.UserAdministrationResponseDTO;
 import dev.danyil.users.dtos.UserCurrentResponseDTO;
 import dev.danyil.users.dtos.UserLockDTO;
 import dev.danyil.users.dtos.UserRequestCreateDTO;
+import dev.danyil.users.dtos.UserRequestPasswordDTO;
 import dev.danyil.users.dtos.UserRequestUpdateDTO;
 import dev.danyil.users.dtos.UserResponseDTO;
 import jakarta.validation.Valid;
