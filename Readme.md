@@ -1,6 +1,7 @@
 # Cadence — Music Release Planner
 
 🔗 **Frontend repo:** [cadence-frontend](https://github.com/danielmuntyanu/cadence-music-release-planner-frontend)
+
 🔗 **Backend repo:** [cadence-backend](https://github.com/danielmuntyanu/cadence-music-release-planner-backend)
 
 ## Project Concept
