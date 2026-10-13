@@ -80,7 +80,7 @@ public class UserController {
     public ResponseEntity<UserCurrentResponseDTO> updateProfileHandler(
             @AuthenticationPrincipal CustomUserDetails user,
             @Valid @RequestBody UserRequestUpdateDTO dto) {
-        return ResponseEntity.ok(userService.updateProfile(user.getId(), dto));
+        return ResponseEntity.ok(userService.update(user.getId(), dto));
     }
 
     @PutMapping("me/password")
@@ -94,7 +94,7 @@ public class UserController {
     @DeleteMapping("me")
     public ResponseEntity<Void> deleteUserHandler(
             @AuthenticationPrincipal CustomUserDetails user) {
-        userService.deleteUser(user.getId());
+        userService.delete(user.getId());
         return ResponseEntity.noContent().build();
     }
 

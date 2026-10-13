@@ -105,7 +105,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserCurrentResponseDTO updateProfile(Long id, UserRequestUpdateDTO dto) {
+    public UserCurrentResponseDTO update(Long id, UserRequestUpdateDTO dto) {
         UserEntity user = findUser(id);
         UserProfileEntity profile = findProfile(user.getId());
 
@@ -130,7 +130,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public void deleteUser(Long id) {
+    public void delete(Long id) {
         UserEntity user = findUser(id);
         UserProfileEntity profile = findProfile(user.getId());
 

@@ -9,6 +9,9 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import dev.danyil.artists.exceptions.ArtistAlreadyExistsException;
+import dev.danyil.artists.exceptions.ArtistNotFoundException;
+import dev.danyil.artists.exceptions.DuplicateSocialPlatformException;
 import dev.danyil.security.exceptions.JwtNoExistException;
 import dev.danyil.users.exceptions.CurrentUserNotFoundException;
 import dev.danyil.users.exceptions.ProfileNotFoundException;
@@ -74,6 +77,26 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleUserNotFoundException(UserNotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(Map.of("id" , e.getId().toString(), "message", e.getMessage()));
+    }
+
+    // ARTISTS
+
+    @ExceptionHandler(ArtistAlreadyExistsException.class)
+    public ResponseEntity<Map<String, String>> handleArtistAlreadyExistsException(ArtistAlreadyExistsException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("name", e.getName(), "message", e.getMessage()));
+    }
+
+    @ExceptionHandler(ArtistNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleArtistNotFoundException(ArtistNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("id", e.getId().toString(), "message", e.getMessage()));
+    }
+
+    @ExceptionHandler(DuplicateSocialPlatformException.class)
+    public ResponseEntity<Map<String, String>> handleDuplicateSocialPlatformException(DuplicateSocialPlatformException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("platform", e.getPlatform().name(), "message", e.getMessage()));
     }
 
     // GENERIC
