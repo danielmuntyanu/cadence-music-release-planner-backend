@@ -5,9 +5,9 @@ import dev.danyil.artists.dtos.ArtistResponseDTO;
 import dev.danyil.artists.dtos.ArtistUpdateRequestDTO;
 
 public interface ArtistService
-        extends GenericGetService<ArtistResponseDTO>, 
-        GenericEditService<ArtistUpdateRequestDTO, ArtistResponseDTO> {
-    
+        extends GenericGetOfUserService<ArtistResponseDTO>,
+        GenericEditOfUserService<ArtistUpdateRequestDTO, ArtistResponseDTO> {
+
     ArtistResponseDTO create(ArtistCreateRequestDTO dto, Long userId);
 
 }

@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import dev.danyil.artists.exceptions.ArtistAlreadyExistsException;
 import dev.danyil.artists.exceptions.ArtistNotFoundException;
+import dev.danyil.artists.exceptions.ArtistOwnershipException;
 import dev.danyil.artists.exceptions.DuplicateSocialPlatformException;
 import dev.danyil.security.exceptions.JwtNoExistException;
 import dev.danyil.users.exceptions.CurrentUserNotFoundException;
@@ -98,6 +99,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(Map.of("platform", e.getPlatform().name(), "message", e.getMessage()));
     }
+
+    @ExceptionHandler(ArtistOwnershipException.class)
+    public ResponseEntity<String> handleArtistOwnershipException(ArtistOwnershipException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(e.getMessage());
+    }
+
+
 
     // GENERIC
 
