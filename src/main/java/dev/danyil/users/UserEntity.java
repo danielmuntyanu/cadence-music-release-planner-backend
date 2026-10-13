@@ -1,9 +1,12 @@
 package dev.danyil.users;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
+import dev.danyil.artists.ArtistEntity;
 import dev.danyil.enums.UserRole;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
@@ -16,6 +19,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -58,5 +62,8 @@ public class UserEntity {
     @Column(nullable = false, updatable = false)
     @Setter(AccessLevel.NONE)
     private Instant createdAt = Instant.now();
+
+    @OneToMany(mappedBy = "user")
+    private List<ArtistEntity> artists = new ArrayList<>();
 
 }
