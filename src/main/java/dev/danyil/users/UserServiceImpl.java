@@ -109,20 +109,28 @@ public class UserServiceImpl implements UserService {
         UserEntity user = findUser(id);
         UserProfileEntity profile = findProfile(user.getId());
 
-        if (toUpdate(dto.username())) {
-            user.setUsername(dto.username());
+        String username = dto.username();
+        if (toUpdate(username)) {
+            if (userRepository.existsByUsername(username)) {
+                throw new UserAlreadyExistsException("username");
+            }
+            user.setUsername(username.trim());
         }
 
-        if (toUpdate(dto.email())) {
-            user.setEmail(dto.email());
+        String email = dto.email();
+        if (toUpdate(email)) {
+            if (userRepository.existsByEmail(email)) {
+                throw new UserAlreadyExistsException("email");
+            }
+            user.setEmail(email.trim().toLowerCase());
         }
 
         if (toUpdate(dto.displayName())) {
-            profile.setDisplayName(dto.displayName());
+            profile.setDisplayName(dto.displayName().trim());
         }
 
         if (toUpdate(dto.bio())) {
-            profile.setBio(dto.bio());
+            profile.setBio(dto.bio().trim());
         }
     
         return userMapper.toCurrentUser(user, profile);
