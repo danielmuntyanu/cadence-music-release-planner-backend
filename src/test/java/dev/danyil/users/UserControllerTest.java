@@ -46,7 +46,7 @@ class UserControllerTest {
 
     @BeforeEach
     void setUp() {
-        userService = mock(UserServiceImpl.class);
+        userService = mock(UserService.class);
         UserController controller = new UserController(userService);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
             .setControllerAdvice(new GlobalExceptionHandler())
@@ -184,7 +184,7 @@ class UserControllerTest {
         mockMvc.perform(patch("/api/v1/users/5/make-locked")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
-                    {"make_locked": true}
+                    {"makeLocked": true}
                     """))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.username").value("test5"));
@@ -198,7 +198,7 @@ class UserControllerTest {
 
         mockMvc.perform(patch("/api/v1/users/99/make-locked")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"make_locked\": true}"))
+                .content("{\"makeLocked\": true}"))
             .andExpect(status().isNotFound());
     }
 

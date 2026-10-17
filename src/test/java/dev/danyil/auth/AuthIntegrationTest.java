@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
@@ -20,6 +21,7 @@ import java.util.Set;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import dev.danyil.TestcontainersConfiguration;
 import dev.danyil.enums.UserRole;
 import dev.danyil.security.JwtService;
 import jakarta.servlet.http.Cookie;
@@ -30,6 +32,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @Transactional
+@Import(TestcontainersConfiguration.class)
 class AuthIntegrationTest {
 
     @Autowired

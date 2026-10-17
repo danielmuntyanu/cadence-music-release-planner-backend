@@ -1,10 +1,20 @@
 services:
-  mysql:
-    image: 'mysql:latest'
+  postgres:
+    image: 'postgres:17-alpine'
     environment:
-      - 'MYSQL_DATABASE=mydatabase'
-      - 'MYSQL_PASSWORD=secret'
-      - 'MYSQL_ROOT_PASSWORD=verysecret'
-      - 'MYSQL_USER=myuser'
+      POSTGRES_DB: ${POSTGRES_DB:-cadence}
+      POSTGRES_USER: ${POSTGRES_USER:-cadence}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
     ports:
-      - '3306'
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - 'postgres-data:/var/lib/postgresql/data'
+    healthcheck:
+      # $$ escapes Compose interpolation: the variables are resolved inside the container.
+      test: ['CMD-SHELL', 'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres-data:

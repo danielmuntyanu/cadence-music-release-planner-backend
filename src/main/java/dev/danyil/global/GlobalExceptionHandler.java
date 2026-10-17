@@ -4,10 +4,12 @@ import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import dev.danyil.artists.exceptions.ArtistAlreadyExistsException;
 import dev.danyil.artists.exceptions.ArtistNotFoundException;
@@ -96,17 +98,30 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DuplicateSocialPlatformException.class)
     public ResponseEntity<Map<String, String>> handleDuplicateSocialPlatformException(DuplicateSocialPlatformException e) {
-        return ResponseEntity.status(HttpStatus.CONFLICT)
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("platform", e.getPlatform().name(), "message", e.getMessage()));
     }
 
     @ExceptionHandler(ArtistOwnershipException.class)
     public ResponseEntity<String> handleArtistOwnershipException(ArtistOwnershipException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(e.getMessage());
+    }
+    
+
+    // COMMON 
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<String> handleHttpMessageNotReadableException(HttpMessageNotReadableException e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(e.getMessage());
     }
 
-
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<String> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(e.getMessage());
+    }
 
     // GENERIC
 

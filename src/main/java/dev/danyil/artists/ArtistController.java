@@ -15,8 +15,8 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import dev.danyil.artists.dtos.ArtistCreateRequestDTO;
 import dev.danyil.artists.dtos.ArtistResponseDTO;
 import dev.danyil.artists.dtos.ArtistUpdateRequestDTO;
+import dev.danyil.auth.CustomUserDetails;
 import dev.danyil.contracts.ArtistService;
-import dev.danyil.users.UserEntity;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -36,7 +36,7 @@ public class ArtistController {
     @PostMapping
     public ResponseEntity<ArtistResponseDTO> create(
             @Valid @RequestBody ArtistCreateRequestDTO request,
-            @AuthenticationPrincipal UserEntity currentUser) {
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
 
         ArtistResponseDTO created = artistService.create(request, currentUser.getId());
         
@@ -47,22 +47,25 @@ public class ArtistController {
     }
 
     @GetMapping("")
-    public ResponseEntity<Page<ArtistResponseDTO>> getAll(@AuthenticationPrincipal UserEntity currentUser, Pageable pageable) {
+    public ResponseEntity<Page<ArtistResponseDTO>> getAll(@AuthenticationPrincipal CustomUserDetails currentUser,
+            Pageable pageable) {
         return ResponseEntity.ok(artistService.getAll(currentUser.getId(), pageable));
     }
 
     @GetMapping("{id}")
-    public ResponseEntity<ArtistResponseDTO> getById(@AuthenticationPrincipal UserEntity currentUser, @PathVariable Long id) {
+    public ResponseEntity<ArtistResponseDTO> getById(@AuthenticationPrincipal CustomUserDetails currentUser,
+            @PathVariable Long id) {
         return ResponseEntity.ok(artistService.getById(currentUser.getId(), id));
     }
 
     @PatchMapping("{id}")
-    public ResponseEntity<ArtistResponseDTO> update(@AuthenticationPrincipal UserEntity currentUser, @PathVariable Long id, @Valid @RequestBody ArtistUpdateRequestDTO dto) {
+    public ResponseEntity<ArtistResponseDTO> update(@AuthenticationPrincipal CustomUserDetails currentUser,
+            @PathVariable Long id, @Valid @RequestBody ArtistUpdateRequestDTO dto) {
         return ResponseEntity.ok(artistService.update(currentUser.getId(), id, dto));
     }
 
     @DeleteMapping("{id}")
-    public ResponseEntity<Void> delete(@AuthenticationPrincipal UserEntity currentUser, @PathVariable Long id) {
+    public ResponseEntity<Void> delete(@AuthenticationPrincipal CustomUserDetails currentUser, @PathVariable Long id) {
         artistService.delete(currentUser.getId(), id);
         return ResponseEntity.noContent().build();
     }

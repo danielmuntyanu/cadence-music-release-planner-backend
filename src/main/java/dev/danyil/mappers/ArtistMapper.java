@@ -1,5 +1,7 @@
 package dev.danyil.mappers;
 
+import java.util.Comparator;
+// import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -55,6 +57,7 @@ public class ArtistMapper {
 
     public ArtistResponseDTO toResponse(ArtistEntity artist) {
         List<SocialResponseDTO> socials = artist.getSocials().stream()
+            .sorted(Comparator.comparing(Social::getPlatform))
             .map(social -> SocialResponseDTO.builder()
                 .platform(social.getPlatform())
                 .url(social.getUrl())

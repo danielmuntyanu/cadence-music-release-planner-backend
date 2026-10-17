@@ -1,0 +1,47 @@
+{"properties": [
+  {
+    "name": "api-endpoint",
+    "type": "java.lang.String",
+    "description": "A description for 'api-endpoint'"
+  },
+  {
+    "name": "cookie-same-site",
+    "type": "java.lang.String",
+    "description": "A description for 'cookie-same-site'"
+  },
+  {
+    "name": "frontend-domain",
+    "type": "java.lang.String",
+    "description": "A description for 'frontend-domain'"
+  },
+  {
+    "name": "access-token-duration-minutes",
+    "type": "java.lang.String",
+    "description": "A description for 'access-token-duration-minutes'"
+  },
+  {
+    "name": "refresh-token-duration-days",
+    "type": "java.lang.String",
+    "description": "A description for 'refresh-token-duration-days'"
+  },
+  {
+    "name": "stripe.success.url",
+    "type": "java.lang.String",
+    "description": "A description for 'stripe.success.url'"
+  },
+  {
+    "name": "stripe.api.key",
+    "type": "java.lang.String",
+    "description": "A description for 'stripe.api.key'"
+  },
+  {
+    "name": "jwt-secret",
+    "type": "java.lang.String",
+    "description": "A description for 'jwt-secret'"
+  },
+  {
+    "name": "stripe.cancel.url",
+    "type": "java.lang.String",
+    "description": "A description for 'stripe.cancel.url'"
+  }
+]}
