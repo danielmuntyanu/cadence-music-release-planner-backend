@@ -110,7 +110,7 @@ public class UserServiceImpl implements UserService {
         UserProfileEntity profile = findProfile(user.getId());
 
         String username = dto.username();
-        if (toUpdate(username)) {
+        if (toUpdate(username) && !user.getUsername().equals(username.trim())) {
             if (userRepository.existsByUsername(username)) {
                 throw new UserAlreadyExistsException("username");
             }
@@ -118,7 +118,7 @@ public class UserServiceImpl implements UserService {
         }
 
         String email = dto.email();
-        if (toUpdate(email)) {
+        if (toUpdate(email) && !user.getEmail().equals(email.trim().toLowerCase())) {
             if (userRepository.existsByEmail(email)) {
                 throw new UserAlreadyExistsException("email");
             }
