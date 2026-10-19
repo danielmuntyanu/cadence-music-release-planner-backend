@@ -43,5 +43,15 @@
     "name": "stripe.cancel.url",
     "type": "java.lang.String",
     "description": "A description for 'stripe.cancel.url'"
+  },
+  {
+    "name": "access-cookie-name",
+    "type": "java.lang.String",
+    "description": "A description for 'access-cookie-name'"
+  },
+  {
+    "name": "refresh-cookie-name",
+    "type": "java.lang.String",
+    "description": "A description for 'refresh-cookie-name'"
   }
 ]}

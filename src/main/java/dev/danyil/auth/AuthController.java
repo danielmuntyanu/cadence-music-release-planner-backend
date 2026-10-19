@@ -3,6 +3,7 @@ package dev.danyil.auth;
 import java.time.Duration;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.CookieValue;
@@ -21,6 +22,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import jakarta.servlet.http.Cookie;
+import org.springframework.util.StringUtils;
+
 
 @RestController
 @RequestMapping(path = "${api-endpoint}/auth")
@@ -30,11 +33,17 @@ public class AuthController {
     private final AuthService authService;
     private final UserService userService;
     
-    @Value("/${api-endpoint}/auth/refresh")
+    @Value("/${api-endpoint}/auth/")
     private String refreshPath;
 
     @Value("${cookie-same-site}")
     private String sameSite;
+
+    @Value("${refresh-cookie-name}")
+    private String refreshCookieName;
+    
+    @Value("${access-cookie-name}")
+    private String accessCookieName;
 
     @Value("${access-token-duration-minutes}")
     private int accessTokenDurationMinutes;
@@ -49,10 +58,8 @@ public class AuthController {
         
         JwtAuthenticationDTO authDTO = authService.getAuth(userDto.username(), userDto.roles());
         
-        Cookie cookieAccess = generateCookie("access_token", authDTO.token(), "/");
-        Cookie cookieRefresh = generateCookie("refresh_token", authDTO.refreshToken(), refreshPath);
-        response.addCookie(cookieAccess);
-        response.addCookie(cookieRefresh);
+        response.addCookie(accessCookie(authDTO.token()));
+        response.addCookie(refreshCookie(authDTO.refreshToken()));
         
         return ResponseEntity.ok(userDto);
     }
@@ -60,42 +67,40 @@ public class AuthController {
     @PostMapping("logout")
     public ResponseEntity<Void> logoutHandler(HttpServletResponse response) {
         
-        Cookie cookieAccess = generateCookie("access_token", "", "/");
-        Cookie cookieRefresh = generateCookie("refresh_token", "", refreshPath);
-        response.addCookie(cookieAccess);
-        response.addCookie(cookieRefresh);
+        response.addCookie(accessCookie(""));
+        response.addCookie(refreshCookie(""));
         
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("refresh")
     public ResponseEntity<Void> refreshHandler(
-        @CookieValue(name = "refresh_token", required = false) String refreshToken, 
+        @CookieValue(name = "${refresh-cookie-name}", required = false) String refreshToken, 
         HttpServletResponse response
     ) {
         JwtAuthenticationDTO authDto = authService.updateAuth(refreshToken);
 
-        Cookie cookieAccess = generateCookie("access_token", authDto.token(), "/");
-        Cookie cookieRefresh = generateCookie("refresh_token", authDto.refreshToken(), refreshPath);
-        response.addCookie(cookieAccess);
-        response.addCookie(cookieRefresh);
+        response.addCookie(accessCookie(authDto.token()));
+        response.addCookie(refreshCookie(authDto.refreshToken()));
 
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("me")
-    public ResponseEntity<UserCurrentResponseDTO> getMeHandler(@AuthenticationPrincipal CustomUserDetails userPrincipal) {
-        return ResponseEntity.ok(userService.getCurrent(userPrincipal.getUsername()));
+    public ResponseEntity<UserCurrentResponseDTO> getMeHandler(
+            @AuthenticationPrincipal CustomUserDetails userPrincipal,
+            @CookieValue(name = "${refresh-cookie-name}", required = false) String refreshToken) {
+        if (userPrincipal != null) return ResponseEntity.ok(userService.getCurrent(userPrincipal.getUsername()));
+        
+        // if access token is expired, but a valid refresh token exists we will answer with 401 to let interceptor make a refresh request
+        if (StringUtils.hasText(refreshToken)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        
+        return ResponseEntity.noContent().build();
     }
 
-    private Cookie generateCookie(String key, String value, String path) {
-        int maxAge;
-        switch (key) {
-            case "access_token" -> maxAge = (int) Duration.ofMinutes(accessTokenDurationMinutes).toSeconds();
-            case "refresh_token" -> maxAge = (int) Duration.ofDays(refreshTokenDurationDays).toSeconds();
-            default -> maxAge = (int) Duration.ofMinutes(30).toSeconds();
-        }
-        
+    // HELPERS
+
+    private Cookie generateCookie(String key, String value, String path, int maxAge) {
         Cookie cookie = new Cookie(key, value);
         cookie.setHttpOnly(true);
         cookie.setSecure(true);
@@ -105,4 +110,26 @@ public class AuthController {
         return cookie;
     }
 
+    private Cookie accessCookie(String token) {
+        int maxAge = token.isBlank() ? 0 : (int) Duration.ofMinutes(accessTokenDurationMinutes).toSeconds();
+
+        return generateCookie(
+            accessCookieName, 
+            token, 
+            "/", 
+            maxAge
+        );
+    }
+
+    private Cookie refreshCookie(String token) {
+        int maxAge = token.isBlank() ? 0 : (int) Duration.ofDays(refreshTokenDurationDays).toSeconds();
+
+        return generateCookie(
+            refreshCookieName, 
+            token, 
+            refreshPath, 
+            maxAge
+        );
+    }
+ 
 }

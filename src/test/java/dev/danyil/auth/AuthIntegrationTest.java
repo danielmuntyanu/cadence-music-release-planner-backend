@@ -151,7 +151,7 @@ class AuthIntegrationTest {
                 .with(csrf())
                 .cookie(new Cookie("access_token", token)))
             .andExpect(cookie().exists("access_token"))
-                .andExpect(cookie().value("access_token", ""))
+            .andExpect(cookie().value("access_token", ""))
             .andExpect(cookie().value("refresh_token", ""));
     }
 
@@ -172,7 +172,7 @@ class AuthIntegrationTest {
     void refresh_withoutRefreshToken_returnsError() throws Exception {
         mockMvc.perform(post(apiEndpoint + "/auth/refresh")
                 .with(csrf()))
-            .andExpect(status().isForbidden());
+            .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -186,9 +186,9 @@ class AuthIntegrationTest {
     }
 
     @Test
-    void me_withoutToken_returnsForbidden() throws Exception {
+    void me_withoutToken_returnsNoContent() throws Exception {
         mockMvc.perform(get(apiEndpoint + "/auth/me"))
-            .andExpect(status().isForbidden());
+            .andExpect(status().isNoContent());
     }
 
 }

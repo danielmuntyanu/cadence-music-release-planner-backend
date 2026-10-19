@@ -53,7 +53,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(JwtException.class)
     public ResponseEntity<String> handleJwtException(JwtException exception) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Authentication failed. " + exception.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Authentication failed. " + exception.getMessage());
     }
 
     @ExceptionHandler(CurrentUserNotFoundException.class)
