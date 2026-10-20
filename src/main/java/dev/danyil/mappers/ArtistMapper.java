@@ -72,6 +72,7 @@ public class ArtistMapper {
             .description(artist.getDescription())
             .genre(artist.getGenre())
             .socials(socials)
+            .releaseCount(artist.getReleaseCount())
         .build();
     }
 

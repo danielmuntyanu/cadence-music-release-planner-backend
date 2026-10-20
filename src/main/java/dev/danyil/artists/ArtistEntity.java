@@ -3,6 +3,8 @@ package dev.danyil.artists;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.hibernate.annotations.Formula;
+
 import dev.danyil.users.UserEntity;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
@@ -59,5 +61,8 @@ public class ArtistEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
     private UserEntity user;
+
+    @Formula("(select count(*) from release_artists ra where ra.artist_id = id )")
+    private Long releaseCount;
 
 }

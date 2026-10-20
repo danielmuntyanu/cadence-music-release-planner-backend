@@ -12,5 +12,6 @@ public record ArtistResponseDTO(
     String bannerUrl,
     String description,
     String genre,
-    List<SocialResponseDTO> socials
+    List<SocialResponseDTO> socials,
+    Long releaseCount
 ) {}

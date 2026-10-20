@@ -95,7 +95,7 @@ class ArtistControllerTest {
 
         artistResponse = new ArtistResponseDTO(
             ARTIST_ID, "Nova", null, null, "Retro sounds", "Synthwave",
-            List.of(new SocialResponseDTO(SocialPlatform.SPOTIFY, SPOTIFY_URL)));
+            List.of(new SocialResponseDTO(SocialPlatform.SPOTIFY, SPOTIFY_URL)), 0L);
     }
 
     @AfterEach
