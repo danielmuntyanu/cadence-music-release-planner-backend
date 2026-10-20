@@ -15,6 +15,9 @@ import dev.danyil.artists.exceptions.ArtistAlreadyExistsException;
 import dev.danyil.artists.exceptions.ArtistNotFoundException;
 import dev.danyil.artists.exceptions.ArtistOwnershipException;
 import dev.danyil.artists.exceptions.DuplicateSocialPlatformException;
+import dev.danyil.releases.exceptions.ReleaseAlreadyExistsException;
+import dev.danyil.releases.exceptions.ReleaseNotFountException;
+import dev.danyil.releases.exceptions.ReleaseOwnershipException;
 import dev.danyil.security.exceptions.JwtNoExistException;
 import dev.danyil.users.exceptions.CurrentUserNotFoundException;
 import dev.danyil.users.exceptions.ProfileNotFoundException;
@@ -107,7 +110,26 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(e.getMessage());
     }
+
+    // RELEASES
     
+    @ExceptionHandler(ReleaseAlreadyExistsException.class)
+    public ResponseEntity<Map<String, String>> handleReleaseAlreadyExistsException(ReleaseAlreadyExistsException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("name", e.getName(), "message", e.getMessage()));
+    }
+
+    @ExceptionHandler(ReleaseNotFountException.class)
+    public ResponseEntity<Map<String, String>> handleReleaseNotFountException(ReleaseNotFountException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("id", e.getId().toString(), "message", e.getMessage()));
+    }
+
+    @ExceptionHandler(ReleaseOwnershipException.class)
+    public ResponseEntity<String> handleReleaseOwnershipException(ReleaseOwnershipException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(e.getMessage());
+    }
 
     // COMMON 
 
