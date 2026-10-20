@@ -1,5 +1,6 @@
 package dev.danyil.releases;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -7,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import org.hibernate.annotations.CreationTimestamp;
 
 import dev.danyil.artists.ArtistEntity;
 import dev.danyil.enums.Genre;
@@ -79,6 +82,10 @@ public class ReleaseEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
     private UserEntity user;
+
+    @CreationTimestamp
+    @Column(nullable = false, updatable = false)
+    private Instant createdAt;
 
     @Builder 
     public ReleaseEntity(String name, ReleasePhase phase, ReleaseType type, String artworkUrl, String notes, Genre primaryGenre, Genre secondaryGenre,
