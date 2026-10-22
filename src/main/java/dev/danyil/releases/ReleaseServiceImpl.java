@@ -58,12 +58,6 @@ public class ReleaseServiceImpl implements ReleaseService {
     }
 
     @Override
-    public Page<ReleaseResponseDTO> getAll(Long userId, Pageable pageable) {
-        Page<ReleaseEntity> releases = releaseRepository.findAllByUserId(userId, pageable);
-        return releases.map(releaseMapper::toResponse);
-    }
-
-    @Override
     public ReleaseResponseDTO getById(Long userId, Long id) {
         return releaseMapper.toResponse(findOwned(userId, id));
     }
@@ -108,7 +102,7 @@ public class ReleaseServiceImpl implements ReleaseService {
 
     @Override
     @Transactional
-    public ReleaseResponseDTO updatePhase(ReleasePhaseUpdateRequestDTO dto, Long userId, Long id) {
+    public ReleaseResponseDTO updatePhase(Long userId, Long id, ReleasePhaseUpdateRequestDTO dto) {
         ReleaseEntity release = findOwned(userId, id);
         release.setPhase(dto.phase());
         return releaseMapper.toResponse(release);
