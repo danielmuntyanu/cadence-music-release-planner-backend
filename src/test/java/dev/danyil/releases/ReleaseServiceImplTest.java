@@ -254,7 +254,7 @@ class ReleaseServiceImplTest {
         }
 
         @ParameterizedTest
-        @ValueSource(strings = { "name", "releaseDate", "createdAt", "phase", "type" })
+        @ValueSource(strings = { "name", "releaseDate", "createdAt" })
         void getAll_allowedSortField_queriesRepository(String field) {
             Pageable pageable = PageRequest.of(0, 24, Sort.by(field));
             when(releaseRepository.findAll(anySpecification(), eq(pageable))).thenReturn(Page.empty(pageable));
@@ -265,7 +265,7 @@ class ReleaseServiceImplTest {
         }
 
         @ParameterizedTest
-        @ValueSource(strings = { "user.password", "notes", "id" })
+        @ValueSource(strings = { "user.password", "notes", "id", "phase", "type" })
         void getAll_sortFieldNotAllowed_throwsBadRequestAndDoesNotQuery(String field) {
             Pageable pageable = PageRequest.of(0, 24, Sort.by(field));
 

@@ -46,10 +46,11 @@ public class ReleaseServiceImpl implements ReleaseService {
     private final ArtistRepository artistRepository;
     private final UserRepository userRepository;
 
-    // Client-controlled sort is limited to these fields: sorting by arbitrary
-    // properties (e.g. user.password) would leak information through result order
-    private static final Set<String> SORTABLE_FIELDS = Set.of("name", "releaseDate", "createdAt", "phase", "type");
+    // Enums are stored as strings, so sorting by phase or type would be alphabetical
+    // (CATALOG, PLANNING, PRE_RELEASE…), not the lifecycle order; they are filters only.
+    private static final Set<String> SORTABLE_FIELDS = Set.of("name", "releaseDate", "createdAt");
 
+    
     @Override
     public Page<ReleaseResponseDTO> getAll(Long userId, ReleaseFilterDTO filter, Pageable pageable) {
         validateSort(pageable);
