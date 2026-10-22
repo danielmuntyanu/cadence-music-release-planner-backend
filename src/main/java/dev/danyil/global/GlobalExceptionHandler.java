@@ -16,6 +16,7 @@ import dev.danyil.artists.exceptions.ArtistNotFoundException;
 import dev.danyil.artists.exceptions.ArtistOwnershipException;
 import dev.danyil.artists.exceptions.DuplicateSocialPlatformException;
 import dev.danyil.releases.exceptions.ReleaseAlreadyExistsException;
+import dev.danyil.releases.exceptions.ReleaseException;
 import dev.danyil.releases.exceptions.ReleaseNotFountException;
 import dev.danyil.releases.exceptions.ReleaseOwnershipException;
 import dev.danyil.security.exceptions.JwtNoExistException;
@@ -33,30 +34,34 @@ public class GlobalExceptionHandler {
     // AUTHENTICATION
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<String> handleValidationException(MethodArgumentNotValidException exception) {
+    public ResponseEntity<Map<String, String>> handleValidationException(MethodArgumentNotValidException e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body("Validation failed: " + exception.getFieldError().getDefaultMessage());
+                .body(Map.of("message", "Validation failed: " + e.getFieldError().getDefaultMessage()));
     }
 
     @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<String> handleBadCredentialsException(
-            BadCredentialsException exception) {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(exception.getMessage());
+    public ResponseEntity<Map<String, String>> handleBadCredentialsException(
+            BadCredentialsException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("message", e.getMessage()));
     }
 
     @ExceptionHandler(JwtNoExistException.class)
-    public ResponseEntity<String> handleJwtNoExistException(JwtNoExistException exception) {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Authentication failed: " + exception.getMessage());
+    public ResponseEntity<Map<String, String>> handleJwtNoExistException(JwtNoExistException exception) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("message", "Authentication failed: " + exception.getMessage()));
     }
 
     @ExceptionHandler(ExpiredJwtException.class)
-    public ResponseEntity<String> handleExpiredJwtException(ExpiredJwtException exception) {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Authentication failed: " + exception.getMessage());
+    public ResponseEntity<Map<String, String>> handleExpiredJwtException(ExpiredJwtException exception) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("message", "Authentication failed: " + exception.getMessage()));
     }
 
     @ExceptionHandler(JwtException.class)
-    public ResponseEntity<String> handleJwtException(JwtException exception) {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Authentication failed. " + exception.getMessage());
+    public ResponseEntity<Map<String, String>> handleJwtException(JwtException exception) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("message", "Authentication failed. " + exception.getMessage()));
     }
 
     @ExceptionHandler(CurrentUserNotFoundException.class)
@@ -106,12 +111,18 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(ArtistOwnershipException.class)
-    public ResponseEntity<String> handleArtistOwnershipException(ArtistOwnershipException e) {
+    public ResponseEntity<Map<String, String>> handleArtistOwnershipException(ArtistOwnershipException e) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(e.getMessage());
+                .body(Map.of("message", e.getMessage()));
     }
 
     // RELEASES
+
+    @ExceptionHandler(ReleaseException.class)
+    public ResponseEntity<Map<String, String>> handleReleaseException(ReleaseException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("message", e.getMessage()));
+    }
     
     @ExceptionHandler(ReleaseAlreadyExistsException.class)
     public ResponseEntity<Map<String, String>> handleReleaseAlreadyExistsException(ReleaseAlreadyExistsException e) {
@@ -126,31 +137,31 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(ReleaseOwnershipException.class)
-    public ResponseEntity<String> handleReleaseOwnershipException(ReleaseOwnershipException e) {
+    public ResponseEntity<Map<String, String>> handleReleaseOwnershipException(ReleaseOwnershipException e) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(e.getMessage());
+                .body(Map.of("message", e.getMessage()));
     }
 
     // COMMON 
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<String> handleHttpMessageNotReadableException(HttpMessageNotReadableException e) {
+    public ResponseEntity<Map<String, String>> handleHttpMessageNotReadableException(HttpMessageNotReadableException e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(e.getMessage());
+                .body(Map.of("message", e.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<String> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e) {
+    public ResponseEntity<Map<String, String>> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(e.getMessage());
+                .body(Map.of("message", e.getMessage()));
     }
 
     // GENERIC
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<String> handleGenericException(Exception e) {
+    public ResponseEntity<Map<String, String>> handleGenericException(Exception e) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(e.getMessage());
+                .body(Map.of("message", e.getMessage()));
     }
 
 }
