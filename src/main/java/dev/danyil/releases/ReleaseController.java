@@ -44,7 +44,7 @@ public class ReleaseController {
         ReleaseResponseDTO created = releaseService.create(request, currentUser.getId());
 
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
-                .path("{id}").buildAndExpand(created.id()).toUri();
+                .path("/{id}").buildAndExpand(created.id()).toUri();
 
         return ResponseEntity.created(location).body(created);
     }

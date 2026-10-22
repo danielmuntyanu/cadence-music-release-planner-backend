@@ -43,7 +43,11 @@ import jakarta.servlet.http.Cookie;
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-@TestPropertySource(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
+@TestPropertySource(properties = {
+    "spring.jpa.hibernate.ddl-auto=create-drop",
+    // Seed data from data.sql would leak into counts and listings
+    "spring.sql.init.mode=never"
+})
 class ArtistIntegrationTest {
 
     private static final String PASSWORD = "password123!";

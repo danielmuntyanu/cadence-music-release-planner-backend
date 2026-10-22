@@ -3,10 +3,10 @@ package dev.danyil.releases.exceptions;
 import lombok.Getter;
 
 @Getter 
-public class ReleaseNotFountException extends RuntimeException {
+public class ReleaseNotFoundException extends RuntimeException {
     private final Long id;
 
-    public ReleaseNotFountException(Long id) {
+    public ReleaseNotFoundException(Long id) {
         super("Release with id '" + id + "' not found");
         this.id = id;
     }

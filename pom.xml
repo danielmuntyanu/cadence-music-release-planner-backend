@@ -9,7 +9,7 @@
 		<relativePath/> 
 	</parent>
 	<groupId>dev.danyil</groupId>
-	<artifactId>cadense</artifactId>
+	<artifactId>cadence</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name/>
 	<description/>

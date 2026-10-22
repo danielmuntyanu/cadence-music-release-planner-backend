@@ -25,7 +25,7 @@ import dev.danyil.releases.dtos.ReleaseResponseDTO;
 import dev.danyil.releases.dtos.ReleaseUpdateRequestDTO;
 import dev.danyil.releases.exceptions.ReleaseAlreadyExistsException;
 import dev.danyil.releases.exceptions.ReleaseException;
-import dev.danyil.releases.exceptions.ReleaseNotFountException;
+import dev.danyil.releases.exceptions.ReleaseNotFoundException;
 import dev.danyil.releases.exceptions.ReleaseOwnershipException;
 import dev.danyil.users.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -118,7 +118,7 @@ public class ReleaseServiceImpl implements ReleaseService {
 
     private ReleaseEntity findOwned(Long userId, Long id) {
         ReleaseEntity release = releaseRepository.findById(id)
-            .orElseThrow(() -> new ReleaseNotFountException(id));
+            .orElseThrow(() -> new ReleaseNotFoundException(id));
 
         if (!release.getUser().getId().equals(userId)) {
             throw new ReleaseOwnershipException();
