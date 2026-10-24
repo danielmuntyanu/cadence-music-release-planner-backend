@@ -53,5 +53,65 @@
     "name": "refresh-cookie-name",
     "type": "java.lang.String",
     "description": "A description for 'refresh-cookie-name'"
+  },
+  {
+    "name": "storage.endpoint",
+    "type": "java.lang.String",
+    "description": "A description for 'storage.endpoint'"
+  },
+  {
+    "name": "storage.public-endpoint",
+    "type": "java.lang.String",
+    "description": "A description for 'storage.public-endpoint'"
+  },
+  {
+    "name": "storage.secret-key",
+    "type": "java.lang.String",
+    "description": "A description for 'storage.secret-key'"
+  },
+  {
+    "name": "storage.access-key",
+    "type": "java.lang.String",
+    "description": "A description for 'storage.access-key'"
+  },
+  {
+    "name": "storage.region",
+    "type": "java.lang.String",
+    "description": "A description for 'storage.region'"
+  },
+  {
+    "name": "storage.public-base-url",
+    "type": "java.lang.String",
+    "description": "A description for 'storage.public-base-url'"
+  },
+  {
+    "name": "storage.auto-create-buckets",
+    "type": "java.lang.String",
+    "description": "A description for 'storage.auto-create-buckets'"
+  },
+  {
+    "name": "storage.public-bucket",
+    "type": "java.lang.String",
+    "description": "A description for 'storage.public-bucket'"
+  },
+  {
+    "name": "storage.private-bucket",
+    "type": "java.lang.String",
+    "description": "A description for 'storage.private-bucket'"
+  },
+  {
+    "name": "storage.bucket",
+    "type": "java.lang.String",
+    "description": "A description for 'storage.bucket'"
+  },
+  {
+    "name": "storage.signed-url-ttl",
+    "type": "java.lang.String",
+    "description": "A description for 'storage.signed-url-ttl'"
+  },
+  {
+    "name": "storage.auto-create-bucket",
+    "type": "java.lang.String",
+    "description": "A description for 'storage.auto-create-bucket'"
   }
 ]}
