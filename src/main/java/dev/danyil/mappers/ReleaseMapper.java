@@ -4,15 +4,20 @@ import java.util.List;
 
 import org.springframework.stereotype.Component;
 
+import dev.danyil.media.MediaUrlResolver;
 import dev.danyil.release_artists.ReleaseArtistEntity;
 import dev.danyil.releases.ReleaseEntity;
 import dev.danyil.releases.dtos.ReleaseArtistResponseDTO;
 import dev.danyil.releases.dtos.ReleaseCreateRequestDTO;
 import dev.danyil.releases.dtos.ReleaseResponseDTO;
 import dev.danyil.releases.dtos.ReleaseUpdateRequestDTO;
+import lombok.RequiredArgsConstructor;
 
 @Component
+@RequiredArgsConstructor 
 public class ReleaseMapper {
+
+    private final MediaUrlResolver media;
 
     public ReleaseResponseDTO toResponse(ReleaseEntity entity) {
         return ReleaseResponseDTO.builder()
@@ -20,8 +25,7 @@ public class ReleaseMapper {
             .name(entity.getName())
             .type(entity.getType())
             .phase(entity.getPhase())
-            .artworkUrl(entity.getArtworkUrl())
-            .notes(entity.getNotes())
+            .artworkUrl(media.resolve(entity.getArtworkKey(), entity.getArtworkUrl()))            .notes(entity.getNotes())
             .primaryGenre(entity.getPrimaryGenre())
             .secondaryGenre(entity.getSecondaryGenre())
             .releaseDate(entity.getReleaseDate())
@@ -36,7 +40,6 @@ public class ReleaseMapper {
             .name(dto.name().trim())
             .type(dto.type())
             .phase(dto.phase())
-            .artworkUrl(blankToNull(dto.artworkUrl()))
             .notes(blankToNull(dto.notes()))
             .primaryGenre(dto.primaryGenre())
             .secondaryGenre(dto.secondaryGenre())
@@ -49,7 +52,6 @@ public class ReleaseMapper {
     public void applyUpdate(ReleaseEntity entity, ReleaseUpdateRequestDTO dto) {
         if (dto.name() != null) entity.setName(dto.name().trim());
         if (dto.type() != null) entity.setType(dto.type());
-        if (dto.artworkUrl() != null) entity.setArtworkUrl(blankToNull(dto.artworkUrl()));
         if (dto.notes() != null) entity.setNotes(blankToNull(dto.notes()));
         if (dto.primaryGenre() != null) entity.setPrimaryGenre(dto.primaryGenre());
         if (dto.secondaryGenre() != null) entity.setSecondaryGenre(dto.secondaryGenre());
@@ -63,7 +65,7 @@ public class ReleaseMapper {
             .map(artist -> ReleaseArtistResponseDTO.builder()
                 .id(artist.getId())
                 .name(artist.getName())
-                .avatarUrl(artist.getAvatarUrl())
+                .avatarUrl(media.resolve(artist.getAvatarKey(), artist.getAvatarUrl()))
                 .build())
             .toList();
     }

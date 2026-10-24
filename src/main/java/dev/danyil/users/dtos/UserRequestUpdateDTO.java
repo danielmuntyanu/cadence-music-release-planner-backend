@@ -1,5 +1,7 @@
 package dev.danyil.users.dtos;
 
+import org.hibernate.validator.constraints.URL;
+
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -17,7 +19,13 @@ public record UserRequestUpdateDTO(
     String displayName,
     
     @Size(max = 500) 
-    String bio
+    String bio,
+
+    // null keeps the avatar; "" removes it; a URL replaces an uploaded file
+    @URL(message = "Avatar must be a valid URL")
+    @Size(max = 512)
+    String avatarUrl
+    
 ) {
 
 }

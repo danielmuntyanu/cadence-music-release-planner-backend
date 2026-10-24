@@ -4,8 +4,6 @@ import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
 
-import org.hibernate.validator.constraints.URL;
-
 import dev.danyil.enums.Genre;
 import dev.danyil.enums.ReleasePhase;
 import dev.danyil.enums.ReleaseType;
@@ -25,10 +23,6 @@ public record ReleaseCreateRequestDTO(
 
     // Optional: new releases start in PLANNING
     ReleasePhase phase,
-
-    @URL(message = "Artwork must be a valid URL")
-    @Size(max = 512)
-    String artworkUrl,
 
     @Size(max = 1024, message = "Notes must be at most 1024 characters")
     String notes,

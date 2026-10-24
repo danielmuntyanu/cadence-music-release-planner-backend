@@ -158,6 +158,20 @@
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>s3</artifactId>
 		</dependency>
+
+		<!-- Image resizing with EXIF orientation support -->
+		<dependency>
+			<groupId>net.coobird</groupId>
+			<artifactId>thumbnailator</artifactId>
+			<version>0.4.20</version>
+		</dependency>
+		<!-- WebP decoding for ImageIO (the JDK reads only JPEG, PNG, GIF and BMP) -->
+		<dependency>
+			<groupId>com.twelvemonkeys.imageio</groupId>
+			<artifactId>imageio-webp</artifactId>
+			<version>3.10.1</version>
+		</dependency>
+
 	</dependencies>
 
 	<build>

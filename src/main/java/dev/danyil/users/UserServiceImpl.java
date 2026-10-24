@@ -7,10 +7,14 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import dev.danyil.contracts.UserService;
 import dev.danyil.enums.UserRole;
 import dev.danyil.mappers.UserMapper;
+import dev.danyil.media.ImageKind;
+import dev.danyil.media.ImageUploadService;
+import dev.danyil.media.MediaKeys;
 import dev.danyil.users.dtos.UserAdministrationResponseDTO;
 import dev.danyil.users.dtos.UserCurrentResponseDTO;
 import dev.danyil.users.dtos.UserRequestCreateDTO;
@@ -31,11 +35,11 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
+    private final ImageUploadService imageUploads;
 
     @Override
     @Transactional
     public UserResponseDTO register(UserRequestCreateDTO req) {
-        
         String username = req.username().trim();
         String email = req.email().trim().toLowerCase();
 
@@ -66,7 +70,6 @@ public class UserServiceImpl implements UserService {
                         ? req.displayName().trim()
                         : username);
         userProfileRepository.save(profile);
-        
         return userMapper.toResponse(user, profile);
     }
 
@@ -132,7 +135,41 @@ public class UserServiceImpl implements UserService {
         if (toUpdate(dto.bio())) {
             profile.setBio(dto.bio().trim());
         }
-    
+
+        // Unlike the text fields above, a blank avatar link is meaningful: it removes the avatar
+        if (dto.avatarUrl() != null) {
+            imageUploads.deleteAfterCommit(profile.getAvatarKey());
+            profile.setAvatarKey(null);
+            profile.setAvatarUrl(dto.avatarUrl().isBlank() ? null : dto.avatarUrl().trim());
+        }
+
+        return userMapper.toCurrentUser(user, profile);
+    }
+
+    @Override
+    @Transactional
+    public UserCurrentResponseDTO uploadAvatar(Long id, MultipartFile file) {
+        UserEntity user = findUser(id);
+        UserProfileEntity profile = findProfile(user.getId());
+
+        String key = imageUploads.store(MediaKeys.userAvatar(id), ImageKind.AVATAR, file);
+        imageUploads.deleteAfterCommit(profile.getAvatarKey());
+        profile.setAvatarKey(key);
+        profile.setAvatarUrl(null);
+
+        return userMapper.toCurrentUser(user, profile);
+    }
+
+    @Override
+    @Transactional
+    public UserCurrentResponseDTO removeAvatar(Long id) {
+        UserEntity user = findUser(id);
+        UserProfileEntity profile = findProfile(user.getId());
+
+        imageUploads.deleteAfterCommit(profile.getAvatarKey());
+        profile.setAvatarKey(null);
+        profile.setAvatarUrl(null);
+
         return userMapper.toCurrentUser(user, profile);
     }
 
@@ -142,6 +179,7 @@ public class UserServiceImpl implements UserService {
         UserEntity user = findUser(id);
         UserProfileEntity profile = findProfile(user.getId());
 
+        imageUploads.deleteAfterCommit(profile.getAvatarKey());
         userProfileRepository.delete(profile);
         userRepository.delete(user);
     }

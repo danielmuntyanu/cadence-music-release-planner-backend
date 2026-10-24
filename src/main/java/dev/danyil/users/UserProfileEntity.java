@@ -23,9 +23,14 @@ public class UserProfileEntity {
     @Column(length = 100)
     private String displayName;
 
-    @Column(length = 500)
+    @Column(length = 512)
     private String bio;
 
+    @Column(length = 512)
     private String avatarUrl;
+
+    // Uploaded avatar in private storage; wins over avatarUrl (external link)
+    @Column(length = 512)
+    private String avatarKey;
 
 }

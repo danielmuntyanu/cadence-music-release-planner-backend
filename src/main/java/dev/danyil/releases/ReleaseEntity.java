@@ -61,6 +61,10 @@ public class ReleaseEntity {
     @Column(length = 512)
     private String artworkUrl;
 
+    // Uploaded cover in private storage; wins over artworkUrl (external link or seed data)
+    @Column(length = 512)
+    private String artworkKey;
+
     @Column(length = 1024)
     private String notes;
 

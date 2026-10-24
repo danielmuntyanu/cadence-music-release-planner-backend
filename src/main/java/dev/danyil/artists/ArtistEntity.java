@@ -37,12 +37,21 @@ public class ArtistEntity {
 
     @Column(nullable = false, length = 50)
     private String name;
+    
 
     @Column(length = 512)
     private String avatarUrl;
 
     @Column(length = 512)
     private String bannerUrl;
+
+    // Uploaded files in private storage; each wins over the matching external link
+    @Column(length = 512)
+    private String avatarKey;
+
+    @Column(length = 512)
+    private String bannerKey;
+
 
     @Column(length = 512)
     private String description;

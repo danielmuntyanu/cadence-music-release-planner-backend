@@ -1,5 +1,7 @@
 package dev.danyil.contracts;
 
+import org.springframework.web.multipart.MultipartFile;
+
 import dev.danyil.users.dtos.UserAdministrationResponseDTO;
 import dev.danyil.users.dtos.UserCurrentResponseDTO;
 import dev.danyil.users.dtos.UserRequestCreateDTO;
@@ -17,4 +19,7 @@ public interface UserService extends GenericGetService<UserAdministrationRespons
 
     void updatePassword(Long id, UserRequestPasswordDTO dto);
 
+    UserCurrentResponseDTO uploadAvatar(Long id, MultipartFile file);
+
+    UserCurrentResponseDTO removeAvatar(Long id);
 }

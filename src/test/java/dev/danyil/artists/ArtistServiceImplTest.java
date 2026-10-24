@@ -32,6 +32,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.mock.web.MockMultipartFile;
 
 import dev.danyil.artists.dtos.ArtistCreateRequestDTO;
 import dev.danyil.artists.dtos.ArtistResponseDTO;
@@ -41,8 +42,11 @@ import dev.danyil.artists.exceptions.ArtistAlreadyExistsException;
 import dev.danyil.artists.exceptions.ArtistNotFoundException;
 import dev.danyil.artists.exceptions.ArtistOwnershipException;
 import dev.danyil.artists.exceptions.DuplicateSocialPlatformException;
+import dev.danyil.enums.ArtistImage;
 import dev.danyil.enums.SocialPlatform;
 import dev.danyil.mappers.ArtistMapper;
+import dev.danyil.media.ImageKind;
+import dev.danyil.media.ImageUploadService;
 import dev.danyil.users.UserEntity;
 import dev.danyil.users.UserRepository;
 
@@ -68,7 +72,10 @@ class ArtistServiceImplTest {
     // The mapper has no dependencies, so the real implementation is used:
     // service tests then verify the actual result, not stubbed mapping.
     @Spy
-    private ArtistMapper artistMapper = new ArtistMapper();
+    private ArtistMapper artistMapper = new ArtistMapper(key -> "signed:" + key);
+
+    @Mock
+    private ImageUploadService imageUploads;
 
     @InjectMocks
     private ArtistServiceImpl artistService;
@@ -372,6 +379,104 @@ class ArtistServiceImplTest {
                 () -> artistService.delete(USER_ID, ARTIST_ID));
 
             verify(artistRepository, never()).delete(any());
+        }
+    }
+
+    // ---------- images ----------
+
+    @Nested
+    @DisplayName("images")
+    class Images {
+
+        private static final String OLD_KEY = "users/1000/artists/4200/avatar-old.jpg";
+        private static final String NEW_KEY = "users/1000/artists/4200/avatar-new.jpg";
+
+        private final MockMultipartFile file =
+            new MockMultipartFile("file", "avatar.png", "image/png", new byte[] { 1, 2, 3 });
+
+        @Test
+        void uploadImage_storesFile_dropsOldOne_andClearsTheLink() {
+            artist.setAvatarKey(OLD_KEY);
+            artist.setAvatarUrl("https://example.com/old.png");
+            givenArtistExists();
+            when(imageUploads.store("users/1000/artists/4200/avatar", ImageKind.AVATAR, file)).thenReturn(NEW_KEY);
+
+            ArtistResponseDTO response = artistService.uploadImage(USER_ID, ARTIST_ID, ArtistImage.AVATAR, file);
+
+            verify(imageUploads).deleteAfterCommit(OLD_KEY);
+            assertThat(artist.getAvatarKey(), is(NEW_KEY));
+            assertThat(artist.getAvatarUrl(), is(nullValue()));
+            assertThat(response.avatarUrl(), is("signed:" + NEW_KEY));
+        }
+
+        @Test
+        void uploadImage_banner_usesTheBannerSlotAndKind() {
+            givenArtistExists();
+            when(imageUploads.store("users/1000/artists/4200/banner", ImageKind.BANNER, file)).thenReturn("banner-key");
+
+            artistService.uploadImage(USER_ID, ARTIST_ID, ArtistImage.BANNER, file);
+
+            assertThat(artist.getBannerKey(), is("banner-key"));
+            assertThat(artist.getAvatarKey(), is(nullValue()));
+        }
+
+        @Test
+        void uploadImage_otherUser_throwsBeforeProcessingTheFile() {
+            givenArtistExists();
+
+            assertThrows(ArtistOwnershipException.class,
+                () -> artistService.uploadImage(OTHER_USER_ID, ARTIST_ID, ArtistImage.AVATAR, file));
+
+            verify(imageUploads, never()).store(any(), any(), any());
+        }
+
+        @Test
+        void removeImage_clearsFileAndLink() {
+            artist.setAvatarKey(OLD_KEY);
+            givenArtistExists();
+
+            ArtistResponseDTO response = artistService.removeImage(USER_ID, ARTIST_ID, ArtistImage.AVATAR);
+
+            verify(imageUploads).deleteAfterCommit(OLD_KEY);
+            assertThat(artist.getAvatarKey(), is(nullValue()));
+            assertThat(response.avatarUrl(), is(nullValue()));
+        }
+
+        @Test
+        void update_withAvatarLink_replacesTheUploadedFile() {
+            artist.setAvatarKey(OLD_KEY);
+            givenArtistExists();
+            ArtistUpdateRequestDTO request =
+                new ArtistUpdateRequestDTO(null, "https://example.com/new.png", null, null, null, null);
+
+            ArtistResponseDTO response = artistService.update(USER_ID, ARTIST_ID, request);
+
+            verify(imageUploads).deleteAfterCommit(OLD_KEY);
+            assertThat(artist.getAvatarKey(), is(nullValue()));
+            assertThat(response.avatarUrl(), is("https://example.com/new.png"));
+        }
+
+        @Test
+        void update_withoutAvatarField_keepsTheUploadedFile() {
+            artist.setAvatarKey(OLD_KEY);
+            givenArtistExists();
+
+            artistService.update(USER_ID, ARTIST_ID, updateRequest(null, null, "Darkwave", null));
+
+            verify(imageUploads, never()).deleteAfterCommit(any());
+            assertThat(artist.getAvatarKey(), is(OLD_KEY));
+        }
+
+        @Test
+        void delete_alsoRemovesBothStoredFiles() {
+            artist.setAvatarKey(OLD_KEY);
+            artist.setBannerKey("banner-key");
+            givenArtistExists();
+
+            artistService.delete(USER_ID, ARTIST_ID);
+
+            verify(imageUploads).deleteAfterCommit(OLD_KEY);
+            verify(imageUploads).deleteAfterCommit("banner-key");
         }
     }
 }

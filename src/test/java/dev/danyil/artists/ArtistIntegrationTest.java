@@ -30,6 +30,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 
 import com.jayway.jsonpath.JsonPath;
 
+import dev.danyil.support.TestImages;
 import dev.danyil.users.UserProfileRepository;
 import dev.danyil.users.UserRepository;
 import jakarta.servlet.http.Cookie;
@@ -55,7 +56,7 @@ class ArtistIntegrationTest {
     // One container for the whole test class, started before the Spring context.
     // @ServiceConnection points the datasource at it, no manual URL/user/password.
     @ServiceConnection
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:17-alpine");
+    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(TestImages.POSTGRES);
 
     static {
         POSTGRES.start();

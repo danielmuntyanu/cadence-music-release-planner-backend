@@ -15,10 +15,15 @@ import dev.danyil.artists.dtos.ArtistResponseDTO;
 import dev.danyil.artists.dtos.ArtistUpdateRequestDTO;
 import dev.danyil.artists.dtos.SocialRequestDTO;
 import dev.danyil.artists.dtos.SocialResponseDTO;
+import dev.danyil.media.MediaUrlResolver;
 import dev.danyil.users.UserEntity;
+import lombok.RequiredArgsConstructor;
 
-@Component 
+@Component
+@RequiredArgsConstructor
 public class ArtistMapper {
+
+    private final MediaUrlResolver media;
 
     public ArtistEntity toEntity(ArtistCreateRequestDTO request, UserEntity owner) {
         ArtistEntity artist = new ArtistEntity();
@@ -67,8 +72,8 @@ public class ArtistMapper {
         return ArtistResponseDTO.builder()
             .id(artist.getId())
             .name(artist.getName())
-            .avatarUrl(artist.getAvatarUrl())
-            .bannerUrl(artist.getBannerUrl())
+            .avatarUrl(media.resolve(artist.getAvatarKey(), artist.getAvatarUrl()))
+            .bannerUrl(media.resolve(artist.getBannerKey(), artist.getBannerUrl()))
             .description(artist.getDescription())
             .genre(artist.getGenre())
             .socials(socials)

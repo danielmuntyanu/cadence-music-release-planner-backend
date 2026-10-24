@@ -38,6 +38,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.mock.web.MockMultipartFile;
 
 import dev.danyil.artists.ArtistEntity;
 import dev.danyil.artists.ArtistRepository;
@@ -46,6 +47,8 @@ import dev.danyil.enums.Genre;
 import dev.danyil.enums.ReleasePhase;
 import dev.danyil.enums.ReleaseType;
 import dev.danyil.mappers.ReleaseMapper;
+import dev.danyil.media.ImageKind;
+import dev.danyil.media.ImageUploadService;
 import dev.danyil.releases.dtos.ReleaseCreateRequestDTO;
 import dev.danyil.releases.dtos.ReleaseFilterDTO;
 import dev.danyil.releases.dtos.ReleasePhaseUpdateRequestDTO;
@@ -83,7 +86,10 @@ class ReleaseServiceImplTest {
 
     // Real mapper: service tests verify the actual result, not stubbed mapping.
     @Spy
-    private ReleaseMapper releaseMapper = new ReleaseMapper();
+    private ReleaseMapper releaseMapper = new ReleaseMapper(key -> "signed:" + key);
+
+    @Mock
+    private ImageUploadService imageUploads;
 
     @InjectMocks
     private ReleaseServiceImpl releaseService;
@@ -125,23 +131,23 @@ class ReleaseServiceImplTest {
 
     private static ReleaseCreateRequestDTO createRequest(String name, List<Long> artistIds) {
         return new ReleaseCreateRequestDTO(
-            name, ReleaseType.EP, null, null, null, Genre.POP, null, null, null, artistIds);
+            name, ReleaseType.EP, null, null, Genre.POP, null, null, null, artistIds);
     }
 
     private static ReleaseUpdateRequestDTO updateName(String name) {
-        return new ReleaseUpdateRequestDTO(name, null, null, null, null, null, null, null, null);
+        return new ReleaseUpdateRequestDTO(name, null, null, null, null, null, null, null);
     }
 
     private static ReleaseUpdateRequestDTO updateNotes(String notes) {
-        return new ReleaseUpdateRequestDTO(null, null, null, notes, null, null, null, null, null);
+        return new ReleaseUpdateRequestDTO(null, null, notes, null, null, null, null, null);
     }
 
     private static ReleaseUpdateRequestDTO updateGenres(Genre primary, Genre secondary) {
-        return new ReleaseUpdateRequestDTO(null, null, null, null, primary, secondary, null, null, null);
+        return new ReleaseUpdateRequestDTO(null, null, null, primary, secondary, null, null, null);
     }
 
     private static ReleaseUpdateRequestDTO updateArtists(List<Long> artistIds) {
-        return new ReleaseUpdateRequestDTO(null, null, null, null, null, null, null, null, artistIds);
+        return new ReleaseUpdateRequestDTO(null, null, null, null, null, null, null, artistIds);
     }
 
     private static List<String> artistNames(ReleaseEntity entity) {
@@ -477,4 +483,73 @@ class ReleaseServiceImplTest {
             verify(releaseRepository, never()).delete(any(ReleaseEntity.class));
         }
     }
+
+
+    // ---------- artwork ----------
+
+    @Nested
+    @DisplayName("artwork")
+    class Artwork {
+
+        private final MockMultipartFile file =
+            new MockMultipartFile("file", "cover.png", "image/png", new byte[] { 1, 2, 3 });
+
+        @Test
+        void uploadArtwork_storesNewFile_andDeletesTheOldOneAfterCommit() {
+            release.setArtworkKey("users/1000/releases/5100/artwork-old.jpg");
+            givenReleaseExists();
+            when(imageUploads.store("users/1000/releases/5100/artwork", ImageKind.ARTWORK, file))
+                .thenReturn("users/1000/releases/5100/artwork-new.jpg");
+
+            ReleaseResponseDTO response = releaseService.uploadArtwork(USER_ID, RELEASE_ID, file);
+
+            verify(imageUploads).deleteAfterCommit("users/1000/releases/5100/artwork-old.jpg");
+            assertThat(release.getArtworkKey(), is("users/1000/releases/5100/artwork-new.jpg"));
+            assertThat(response.artworkUrl(), is("signed:users/1000/releases/5100/artwork-new.jpg"));
+        }
+
+        @Test
+        void uploadArtwork_replacesAnExternalLink() {
+            release.setArtworkUrl("https://example.com/cover.jpg");
+            givenReleaseExists();
+            when(imageUploads.store(any(), any(), any())).thenReturn("users/1000/releases/5100/artwork-new.jpg");
+
+            releaseService.uploadArtwork(USER_ID, RELEASE_ID, file);
+
+            assertThat(release.getArtworkUrl(), is(nullValue()));
+        }
+
+        @Test
+        void uploadArtwork_otherUser_throwsBeforeProcessingTheFile() {
+            givenReleaseExists();
+
+            assertThrows(ReleaseOwnershipException.class,
+                () -> releaseService.uploadArtwork(OTHER_USER_ID, RELEASE_ID, file));
+
+            verify(imageUploads, never()).store(any(), any(), any());
+        }
+
+        @Test
+        void removeArtwork_clearsBothFields_andDeletesTheFileAfterCommit() {
+            release.setArtworkKey("users/1000/releases/5100/artwork-old.jpg");
+            givenReleaseExists();
+
+            ReleaseResponseDTO response = releaseService.removeArtwork(USER_ID, RELEASE_ID);
+
+            verify(imageUploads).deleteAfterCommit("users/1000/releases/5100/artwork-old.jpg");
+            assertThat(release.getArtworkKey(), is(nullValue()));
+            assertThat(response.artworkUrl(), is(nullValue()));
+        }
+
+        @Test
+        void delete_alsoRemovesTheArtworkFile() {
+            release.setArtworkKey("users/1000/releases/5100/artwork-old.jpg");
+            givenReleaseExists();
+
+            releaseService.delete(USER_ID, RELEASE_ID);
+
+            verify(imageUploads).deleteAfterCommit("users/1000/releases/5100/artwork-old.jpg");
+        }
+    }
+
 }

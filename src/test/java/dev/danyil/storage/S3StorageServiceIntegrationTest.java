@@ -28,13 +28,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.utility.DockerImageName;
 
 import dev.danyil.contracts.StorageService;
 import dev.danyil.storage.dtos.StoredObjectInfo;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
+import dev.danyil.support.TestImages;
 
 /**
  * S3StorageService against a real MinIO. The key guarantee: no file is readable
@@ -49,8 +49,7 @@ class S3StorageServiceIntegrationTest {
 
     // Upstream MinIO no longer publishes images; pgsty/minio is a community rebuild from the same source
     @SuppressWarnings("resource")
-    static final GenericContainer<?> MINIO = new GenericContainer<>(
-            DockerImageName.parse("pgsty/minio:RELEASE.2026-08-04T00-00-00Z"))
+    static final GenericContainer<?> MINIO = new GenericContainer<>(TestImages.MINIO)
     .withEnv("MINIO_ROOT_USER", ACCESS_KEY)
     .withEnv("MINIO_ROOT_PASSWORD", SECRET_KEY)
     .withCommand("server", "/data")

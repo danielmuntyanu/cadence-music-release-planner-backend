@@ -79,8 +79,8 @@ class UserServiceImplTest {
     }
 
     private static UserRequestUpdateDTO update(String username, String email,
-            String displayName, String bio) {
-        return new UserRequestUpdateDTO(username, email, displayName, bio);
+            String displayName, String bio, String avatarUrl) {
+        return new UserRequestUpdateDTO(username, email, displayName, bio, avatarUrl);
     }
 
     private static UserRequestCreateDTO request(String username, String email,
@@ -363,7 +363,7 @@ class UserServiceImplTest {
         when(userProfileRepository.findById(1L)).thenReturn(Optional.of(profile));
         when(userMapper.toCurrentUser(user, profile)).thenReturn(expected);
 
-        UserCurrentResponseDTO result = userService.update(1L, update(null, null, null, "new bio"));
+        UserCurrentResponseDTO result = userService.update(1L, update(null, null, null, "new bio", null));
 
         assertThat(profile.getBio(), is("new bio"));
         assertThat(profile.getDisplayName(), is("Dan"));
@@ -380,7 +380,7 @@ class UserServiceImplTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(userProfileRepository.findById(1L)).thenReturn(Optional.of(profile));
 
-        userService.update(1L, update("  ", "", " ", "   "));
+        userService.update(1L, update("  ", "", " ", "   ", " "));
 
         assertThat(user.getUsername(), is("daniel"));
         assertThat(user.getEmail(), is("daniel@mail.com"));
@@ -396,7 +396,7 @@ class UserServiceImplTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(userProfileRepository.findById(1L)).thenReturn(Optional.of(profile));
 
-        userService.update(1L, update("  dan  ", "  Dan@Mail.COM ", null, null));
+        userService.update(1L, update("  dan  ", "  Dan@Mail.COM ", null, null, null));
 
         assertThat(user.getUsername(), is("dan"));
         assertThat(user.getEmail(), is("dan@mail.com"));
@@ -412,7 +412,7 @@ class UserServiceImplTest {
         when(userRepository.existsByUsername("taken")).thenReturn(true);
 
         UserAlreadyExistsException ex = assertThrows(UserAlreadyExistsException.class,
-                () -> userService.update(1L, update("taken", null, null, null)));
+                () -> userService.update(1L, update("taken", null, null, null, null)));
 
         assertThat(ex.getField(), is("username"));
         assertThat(user.getUsername(), is("daniel"));
@@ -428,7 +428,7 @@ class UserServiceImplTest {
         when(userRepository.existsByEmail("taken@mail.com")).thenReturn(true);
 
         UserAlreadyExistsException ex = assertThrows(UserAlreadyExistsException.class,
-                () -> userService.update(1L, update(null, "taken@mail.com", null, null)));
+                () -> userService.update(1L, update(null, "taken@mail.com", null, null, null)));
 
         assertThat(ex.getField(), is("email"));
         assertThat(user.getEmail(), is("daniel@mail.com"));
@@ -446,7 +446,7 @@ class UserServiceImplTest {
         lenient().when(userRepository.existsByUsername("daniel")).thenReturn(true);
         lenient().when(userRepository.existsByEmail("daniel@mail.com")).thenReturn(true);
 
-        userService.update(1L, update("daniel", "daniel@mail.com", "New Name", null));
+        userService.update(1L, update("daniel", "daniel@mail.com", "New Name", null, null));
 
         assertThat(profile.getDisplayName(), is("New Name"));
     }
@@ -456,7 +456,7 @@ class UserServiceImplTest {
         when(userRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThrows(UserNotFoundException.class,
-                () -> userService.update(99L, update("dan", null, null, null)));
+                () -> userService.update(99L, update("dan", null, null, null, null)));
 
         verifyNoInteractions(userProfileRepository, userMapper);
     }
@@ -467,7 +467,7 @@ class UserServiceImplTest {
         when(userProfileRepository.findById(1L)).thenReturn(Optional.empty());
 
         assertThrows(ProfileNotFoundException.class,
-                () -> userService.update(1L, update(null, null, null, "bio")));
+                () -> userService.update(1L, update(null, null, null, "bio", null)));
 
         verifyNoInteractions(userMapper);
     }

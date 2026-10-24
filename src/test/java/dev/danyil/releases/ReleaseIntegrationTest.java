@@ -36,6 +36,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 import com.jayway.jsonpath.JsonPath;
 
 import dev.danyil.artists.ArtistRepository;
+import dev.danyil.support.TestImages;
 import dev.danyil.users.UserProfileRepository;
 import dev.danyil.users.UserRepository;
 import jakarta.servlet.http.Cookie;
@@ -57,7 +58,7 @@ class ReleaseIntegrationTest {
     private static final String PASSWORD = "password123!";
 
     @ServiceConnection
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:17-alpine");
+    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(TestImages.POSTGRES);
 
     static {
         POSTGRES.start();

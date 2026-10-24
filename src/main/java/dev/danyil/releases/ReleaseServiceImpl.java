@@ -12,12 +12,16 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 import dev.danyil.artists.ArtistEntity;
 import dev.danyil.artists.ArtistRepository;
 import dev.danyil.artists.exceptions.ArtistNotFoundException;
 import dev.danyil.contracts.ReleaseService;
 import dev.danyil.mappers.ReleaseMapper;
+import dev.danyil.media.ImageKind;
+import dev.danyil.media.ImageUploadService;
+import dev.danyil.media.MediaKeys;
 import dev.danyil.releases.dtos.ReleaseCreateRequestDTO;
 import dev.danyil.releases.dtos.ReleaseFilterDTO;
 import dev.danyil.releases.dtos.ReleasePhaseUpdateRequestDTO;
@@ -45,6 +49,7 @@ public class ReleaseServiceImpl implements ReleaseService {
     private final ReleaseRepository releaseRepository;
     private final ArtistRepository artistRepository;
     private final UserRepository userRepository;
+    private final ImageUploadService imageUploads;
 
     // Enums are stored as strings, so sorting by phase or type would be alphabetical
     // (CATALOG, PLANNING, PRE_RELEASE…), not the lifecycle order; they are filters only.
@@ -112,8 +117,35 @@ public class ReleaseServiceImpl implements ReleaseService {
     @Override
     @Transactional
     public void delete(Long userId, Long id) {
-        releaseRepository.delete(findOwned(userId, id));
-    }    
+        ReleaseEntity release = findOwned(userId, id);
+        imageUploads.deleteAfterCommit(release.getArtworkKey());
+        releaseRepository.delete(release);
+    }
+
+    @Override
+    @Transactional
+    public ReleaseResponseDTO uploadArtwork(Long userId, Long id, MultipartFile file) {
+        ReleaseEntity release = findOwned(userId, id);
+
+        String key = imageUploads.store(MediaKeys.releaseArtwork(userId, id), ImageKind.ARTWORK, file);
+        imageUploads.deleteAfterCommit(release.getArtworkKey());
+        release.setArtworkKey(key);
+        release.setArtworkUrl(null);
+
+        return releaseMapper.toResponse(release);
+    }
+
+    @Override
+    @Transactional
+    public ReleaseResponseDTO removeArtwork(Long userId, Long id) {
+        ReleaseEntity release = findOwned(userId, id);
+
+        imageUploads.deleteAfterCommit(release.getArtworkKey());
+        release.setArtworkKey(null);
+        release.setArtworkUrl(null);
+
+        return releaseMapper.toResponse(release);
+    }
 
     // HELPERS
 

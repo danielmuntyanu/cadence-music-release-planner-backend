@@ -5,6 +5,8 @@ import org.springframework.boot.testcontainers.service.connection.ServiceConnect
 import org.springframework.context.annotation.Bean;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
+import dev.danyil.support.TestImages;
+
 /** PostgreSQL in Docker for every test that boots the full application context. */
 @TestConfiguration(proxyBeanMethods = false)
 public class TestcontainersConfiguration {
@@ -12,6 +14,6 @@ public class TestcontainersConfiguration {
     @Bean
     @ServiceConnection
     PostgreSQLContainer postgresContainer() {
-        return new PostgreSQLContainer("postgres:17-alpine");
+        return new PostgreSQLContainer(TestImages.POSTGRES);
     }
 }

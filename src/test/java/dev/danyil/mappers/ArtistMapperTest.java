@@ -24,7 +24,7 @@ import dev.danyil.users.UserEntity;
 
 class ArtistMapperTest {
 
-    private final ArtistMapper mapper = new ArtistMapper();
+    private final ArtistMapper mapper = new ArtistMapper(key -> "signed:" + key);
 
     @Test
     void toEntity_trimsValuesAndTurnsBlankOptionalFieldsIntoNull() {
