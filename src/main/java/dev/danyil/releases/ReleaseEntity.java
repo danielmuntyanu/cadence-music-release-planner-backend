@@ -4,6 +4,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -16,6 +18,8 @@ import dev.danyil.enums.Genre;
 import dev.danyil.enums.ReleasePhase;
 import dev.danyil.enums.ReleaseType;
 import dev.danyil.release_artists.ReleaseArtistEntity;
+import dev.danyil.songs.SongEntity;
+import dev.danyil.songs.exceptions.InvalidSongOrderException;
 import dev.danyil.users.UserEntity;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -83,6 +87,10 @@ public class ReleaseEntity {
     @OrderBy("position ASC")
     private List<ReleaseArtistEntity> artists = new ArrayList<>();
 
+    @OneToMany(mappedBy = "release", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("position ASC")
+    private List<SongEntity> songs = new ArrayList<>();
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
     private UserEntity user;
@@ -123,6 +131,44 @@ public class ReleaseEntity {
         }
 
         artists.sort(Comparator.comparingInt(ReleaseArtistEntity::getPosition));
+    }
+
+    /** Appends a song at the end of the tracklist. */
+    public SongEntity addSong(SongEntity song) {
+        song.setRelease(this);
+        song.setPosition(songs.size());
+        songs.add(song);
+        return song;
+    }
+
+    /** Removes a song and closes the gap it leaves, so positions stay 0, 1, 2… */
+    public void removeSong(SongEntity song) {
+        if (songs.remove(song)) renumberSongs();
+    }
+
+    /**
+     * Applies a new order given as song ids. The list must contain every song
+     * of this release exactly once: a partial or stale list could silently lose tracks.
+     */
+    public void reorderSongs(List<Long> orderedIds) {
+        Map<Long, SongEntity> byId = new HashMap<>();
+        for (SongEntity song : songs) byId.put(song.getId(), song);
+
+        boolean sameSongs = orderedIds.size() == songs.size()
+            && new HashSet<>(orderedIds).size() == orderedIds.size()
+            && byId.keySet().containsAll(orderedIds);
+        if (!sameSongs) throw new InvalidSongOrderException();
+
+        for (int position = 0; position < orderedIds.size(); position++) {
+            byId.get(orderedIds.get(position)).setPosition(position);
+        }
+        songs.sort(Comparator.comparingInt(SongEntity::getPosition));
+    }
+
+    private void renumberSongs() {
+        for (int position = 0; position < songs.size(); position++) {
+            songs.get(position).setPosition(position);
+        }
     }
 
 }
