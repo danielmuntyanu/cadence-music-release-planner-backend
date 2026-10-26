@@ -15,7 +15,7 @@ import jakarta.validation.constraints.Size;
 public record ReleaseCreateRequestDTO(
 
     @NotBlank(message = "Name is required")
-    @Size(max = 128, message = "Name must be at most 150 characters")
+    @Size(max = 150, message = "Name must be at most 150 characters")
     String name,
 
     // Optional: new releases without a type will be marked as SINGLE

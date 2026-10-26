@@ -50,7 +50,9 @@ import dev.danyil.mappers.ReleaseMapper;
 import dev.danyil.media.ImageKind;
 import dev.danyil.media.ImageUploadService;
 import dev.danyil.releases.dtos.ReleaseCreateRequestDTO;
+import dev.danyil.releases.dtos.ReleaseDatesRequestDTO;
 import dev.danyil.releases.dtos.ReleaseFilterDTO;
+import dev.danyil.releases.dtos.ReleaseGenresRequestDTO;
 import dev.danyil.releases.dtos.ReleasePhaseUpdateRequestDTO;
 import dev.danyil.releases.dtos.ReleaseResponseDTO;
 import dev.danyil.releases.dtos.ReleaseUpdateRequestDTO;
@@ -135,19 +137,15 @@ class ReleaseServiceImplTest {
     }
 
     private static ReleaseUpdateRequestDTO updateName(String name) {
-        return new ReleaseUpdateRequestDTO(name, null, null, null, null, null, null, null);
+        return new ReleaseUpdateRequestDTO(name, null, null, null);
     }
 
     private static ReleaseUpdateRequestDTO updateNotes(String notes) {
-        return new ReleaseUpdateRequestDTO(null, null, notes, null, null, null, null, null);
-    }
-
-    private static ReleaseUpdateRequestDTO updateGenres(Genre primary, Genre secondary) {
-        return new ReleaseUpdateRequestDTO(null, null, null, primary, secondary, null, null, null);
+        return new ReleaseUpdateRequestDTO(null, null, notes, null);
     }
 
     private static ReleaseUpdateRequestDTO updateArtists(List<Long> artistIds) {
-        return new ReleaseUpdateRequestDTO(null, null, null, null, null, null, null, artistIds);
+        return new ReleaseUpdateRequestDTO(null, null, null, artistIds);
     }
 
     private static List<String> artistNames(ReleaseEntity entity) {
@@ -385,23 +383,6 @@ class ReleaseServiceImplTest {
         }
 
         @Test
-        void update_secondaryGenreEqualsExistingPrimary_throwsBadRequest() {
-            givenReleaseExists();
-
-            assertThrows(ReleaseException.class,
-                () -> releaseService.update(USER_ID, RELEASE_ID, updateGenres(null, Genre.POP)));
-        }
-
-        @Test
-        void update_primaryGenreEqualsExistingSecondary_throwsBadRequest() {
-            release.setSecondaryGenre(Genre.ROCK);
-            givenReleaseExists();
-
-            assertThrows(ReleaseException.class,
-                () -> releaseService.update(USER_ID, RELEASE_ID, updateGenres(Genre.ROCK, null)));
-        }
-
-        @Test
         void update_otherUserRequests_throwsAndLeavesReleaseUnchanged() {
             givenReleaseExists();
 
@@ -549,6 +530,89 @@ class ReleaseServiceImplTest {
             releaseService.delete(USER_ID, RELEASE_ID);
 
             verify(imageUploads).deleteAfterCommit("users/1000/releases/5100/artwork-old.jpg");
+        }
+    }
+
+    // ---------- genres and dates ----------
+
+    @Nested
+    @DisplayName("genres and dates")
+    class GenresAndDates {
+
+        @Test
+        void updateGenres_replacesBothGenres() {
+            release.setSecondaryGenre(Genre.ROCK);
+            givenReleaseExists();
+
+            ReleaseResponseDTO response = releaseService.updateGenres(
+                USER_ID, RELEASE_ID, new ReleaseGenresRequestDTO(Genre.ELECTRONIC, Genre.POP));
+
+            assertThat(release.getPrimaryGenre(), is(Genre.ELECTRONIC));
+            assertThat(release.getSecondaryGenre(), is(Genre.POP));
+            assertThat(response.primaryGenre(), is(Genre.ELECTRONIC));
+        }
+
+        @Test
+        void updateGenres_nullSecondary_removesIt() {
+            release.setSecondaryGenre(Genre.ROCK);
+            givenReleaseExists();
+
+            releaseService.updateGenres(USER_ID, RELEASE_ID, new ReleaseGenresRequestDTO(Genre.POP, null));
+
+            assertThat(release.getSecondaryGenre(), is(nullValue()));
+        }
+
+        @Test
+        void updateGenres_otherUser_throwsAndKeepsGenres() {
+            givenReleaseExists();
+
+            assertThrows(ReleaseOwnershipException.class,
+                () -> releaseService.updateGenres(OTHER_USER_ID, RELEASE_ID, new ReleaseGenresRequestDTO(Genre.ROCK, null)));
+
+            assertThat(release.getPrimaryGenre(), is(Genre.POP));
+        }
+
+        @Test
+        void updateDates_replacesBothDates() {
+            givenReleaseExists();
+            LocalDate original = LocalDate.of(2020, 5, 1);
+            LocalDate reissue = LocalDate.of(2026, 12, 4);
+
+            releaseService.updateDates(USER_ID, RELEASE_ID, new ReleaseDatesRequestDTO(reissue, original));
+
+            assertThat(release.getReleaseDate(), is(reissue));
+            assertThat(release.getOriginalReleaseDate(), is(original));
+        }
+
+        @Test
+        void updateDates_nulls_clearBothDates() {
+            // The reason this endpoint exists: PATCH could not express "clear this date"
+            release.setOriginalReleaseDate(LocalDate.of(2020, 5, 1));
+            givenReleaseExists();
+
+            ReleaseResponseDTO response = releaseService.updateDates(USER_ID, RELEASE_ID, new ReleaseDatesRequestDTO(null, null));
+
+            assertThat(release.getReleaseDate(), is(nullValue()));
+            assertThat(release.getOriginalReleaseDate(), is(nullValue()));
+            assertThat(response.releaseDate(), is(nullValue()));
+        }
+
+        @Test
+        void updateDates_otherUser_throwsAndKeepsDates() {
+            givenReleaseExists();
+
+            assertThrows(ReleaseOwnershipException.class,
+                () -> releaseService.updateDates(OTHER_USER_ID, RELEASE_ID, new ReleaseDatesRequestDTO(null, null)));
+
+            assertThat(release.getReleaseDate(), is(LocalDate.of(2026, 11, 14)));
+        }
+
+        @Test
+        void updateDates_missingRelease_throwsNotFound() {
+            givenReleaseDoesNotExist();
+
+            assertThrows(ReleaseNotFoundException.class,
+                () -> releaseService.updateDates(USER_ID, RELEASE_ID, new ReleaseDatesRequestDTO(null, null)));
         }
     }
 

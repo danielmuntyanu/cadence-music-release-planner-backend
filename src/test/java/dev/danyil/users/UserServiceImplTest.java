@@ -27,6 +27,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import dev.danyil.enums.UserRole;
 import dev.danyil.mappers.UserMapper;
+import dev.danyil.media.ImageUploadService;
 import dev.danyil.users.dtos.UserAdministrationResponseDTO;
 import dev.danyil.users.dtos.UserCurrentResponseDTO;
 import dev.danyil.users.dtos.UserRequestCreateDTO;
@@ -51,6 +52,8 @@ class UserServiceImplTest {
     private UserMapper userMapper;
     @Mock
     private PasswordEncoder passwordEncoder;
+    @Mock
+    private ImageUploadService imageUploads;
 
     @InjectMocks
     private UserServiceImpl userService;

@@ -26,7 +26,9 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import dev.danyil.auth.CustomUserDetails;
 import dev.danyil.contracts.ReleaseService;
 import dev.danyil.releases.dtos.ReleaseCreateRequestDTO;
+import dev.danyil.releases.dtos.ReleaseDatesRequestDTO;
 import dev.danyil.releases.dtos.ReleaseFilterDTO;
+import dev.danyil.releases.dtos.ReleaseGenresRequestDTO;
 import dev.danyil.releases.dtos.ReleasePhaseUpdateRequestDTO;
 import dev.danyil.releases.dtos.ReleaseResponseDTO;
 import dev.danyil.releases.dtos.ReleaseUpdateRequestDTO;
@@ -107,6 +109,22 @@ public class ReleaseController {
             @AuthenticationPrincipal CustomUserDetails currentUser,
             @PathVariable Long id) {
         return ResponseEntity.ok(releaseService.removeArtwork(currentUser.getId(), id));
+    }
+
+    @PutMapping("{id}/genres")
+    public ResponseEntity<ReleaseResponseDTO> updateGenres(
+            @AuthenticationPrincipal CustomUserDetails currentUser,
+            @PathVariable Long id,
+            @Valid @RequestBody ReleaseGenresRequestDTO request) {
+        return ResponseEntity.ok(releaseService.updateGenres(currentUser.getId(), id, request));
+    }
+
+    @PutMapping("{id}/dates")
+    public ResponseEntity<ReleaseResponseDTO> updateDates(
+            @AuthenticationPrincipal CustomUserDetails currentUser,
+            @PathVariable Long id,
+            @Valid @RequestBody ReleaseDatesRequestDTO request) {
+        return ResponseEntity.ok(releaseService.updateDates(currentUser.getId(), id, request));
     }
 
 }

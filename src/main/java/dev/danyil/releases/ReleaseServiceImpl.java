@@ -23,7 +23,9 @@ import dev.danyil.media.ImageKind;
 import dev.danyil.media.ImageUploadService;
 import dev.danyil.media.MediaKeys;
 import dev.danyil.releases.dtos.ReleaseCreateRequestDTO;
+import dev.danyil.releases.dtos.ReleaseDatesRequestDTO;
 import dev.danyil.releases.dtos.ReleaseFilterDTO;
+import dev.danyil.releases.dtos.ReleaseGenresRequestDTO;
 import dev.danyil.releases.dtos.ReleasePhaseUpdateRequestDTO;
 import dev.danyil.releases.dtos.ReleaseResponseDTO;
 import dev.danyil.releases.dtos.ReleaseUpdateRequestDTO;
@@ -100,9 +102,6 @@ public class ReleaseServiceImpl implements ReleaseService {
             release.replaceArtists(loadOwnedArtistsInOrder(dto.artistIds(), userId));
         }
 
-        // Cross-field rules are checked on the merged state: a PATCH may change only one side
-        validateConsistency(release);
-
         return releaseMapper.toResponse(release);
     }
 
@@ -111,6 +110,30 @@ public class ReleaseServiceImpl implements ReleaseService {
     public ReleaseResponseDTO updatePhase(Long userId, Long id, ReleasePhaseUpdateRequestDTO dto) {
         ReleaseEntity release = findOwned(userId, id);
         release.setPhase(dto.phase());
+        return releaseMapper.toResponse(release);
+    }
+
+    @Override
+    @Transactional
+    public ReleaseResponseDTO updateGenres(Long userId, Long id, ReleaseGenresRequestDTO request) {
+        ReleaseEntity release = findOwned(userId, id);
+
+        // The pair is validated on the DTO; both values replace the current ones
+        release.setPrimaryGenre(request.primaryGenre());
+        release.setSecondaryGenre(request.secondaryGenre());
+
+        return releaseMapper.toResponse(release);
+    }
+
+    @Override
+    @Transactional
+    public ReleaseResponseDTO updateDates(Long userId, Long id, ReleaseDatesRequestDTO request) {
+        ReleaseEntity release = findOwned(userId, id);
+
+        // null is a real value here: it clears the date
+        release.setReleaseDate(request.releaseDate());
+        release.setOriginalReleaseDate(request.originalReleaseDate());
+
         return releaseMapper.toResponse(release);
     }
 
@@ -189,16 +212,6 @@ public class ReleaseServiceImpl implements ReleaseService {
             ordered.add(artist);
         }
         return ordered;
-    }
-
-    private void validateConsistency(ReleaseEntity release) {
-        if (release.getSecondaryGenre() != null && release.getSecondaryGenre() == release.getPrimaryGenre()) {
-            throw new ReleaseException( "Secondary genre must differ from the primary genre");
-        }
-        if (release.getOriginalReleaseDate() != null && release.getReleaseDate() != null
-                && !release.getOriginalReleaseDate().isBefore(release.getReleaseDate())) {
-            throw new ReleaseException( "Original release date must be before the release date");
-        }
     }
 
     private void validateSort(Pageable pageable) {

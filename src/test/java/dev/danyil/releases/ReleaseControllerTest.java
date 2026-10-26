@@ -22,6 +22,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -55,7 +56,9 @@ import dev.danyil.enums.ReleaseType;
 import dev.danyil.global.GlobalExceptionHandler;
 import dev.danyil.releases.dtos.ReleaseArtistResponseDTO;
 import dev.danyil.releases.dtos.ReleaseCreateRequestDTO;
+import dev.danyil.releases.dtos.ReleaseDatesRequestDTO;
 import dev.danyil.releases.dtos.ReleaseFilterDTO;
+import dev.danyil.releases.dtos.ReleaseGenresRequestDTO;
 import dev.danyil.releases.dtos.ReleasePhaseUpdateRequestDTO;
 import dev.danyil.releases.dtos.ReleaseResponseDTO;
 import dev.danyil.releases.dtos.ReleaseUpdateRequestDTO;
@@ -183,10 +186,6 @@ class ReleaseControllerTest {
             """
             { "name": "Night Drive", "type": "EP", "primaryGenre": "POP",
               "releaseDate": "2026-01-01", "originalReleaseDate": "2026-06-01" }
-            """,
-            // invalid artwork URL
-            """
-            { "name": "Night Drive", "type": "EP", "primaryGenre": "POP", "artworkUrl": "not a url" }
             """
         })
         void create_invalidRequest_returns400AndDoesNotCallService(String body) throws Exception {
@@ -236,6 +235,21 @@ class ReleaseControllerTest {
             ArgumentCaptor<ReleaseCreateRequestDTO> captor = ArgumentCaptor.forClass(ReleaseCreateRequestDTO.class);
             verify(releaseService).create(captor.capture(), eq(USER_ID));
             assertThat(captor.getValue().type(), is(nullValue()));
+        }
+
+        @Test
+        void create_ignoresArtworkUrl_theServerOwnsTheCover() throws Exception {
+            when(releaseService.create(any(ReleaseCreateRequestDTO.class), eq(USER_ID))).thenReturn(releaseResponse);
+
+            mockMvc.perform(post(RELEASES_URL)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""
+                        { "name": "Night Drive", "primaryGenre": "POP", "artworkUrl": "https://evil.test/cover.jpg" }
+                        """))
+                .andExpect(status().isCreated());
+
+            // The DTO has no artworkUrl field: there is no way for the value to reach the service
+            verify(releaseService).create(any(ReleaseCreateRequestDTO.class), eq(USER_ID));
         }
     }
 
@@ -381,9 +395,6 @@ class ReleaseControllerTest {
             """,
             """
             { "artistIds": [4200, 4200] }
-            """,
-            """
-            { "artworkUrl": "not a url" }
             """
         })
         void update_invalidRequest_returns400AndDoesNotCallService(String body) throws Exception {
@@ -472,6 +483,127 @@ class ReleaseControllerTest {
 
             mockMvc.perform(delete(RELEASES_URL + "/{id}", RELEASE_ID))
                 .andExpect(status().isForbidden());
+        }
+    }
+
+        // ---------- PUT /releases/{id}/genres ----------
+
+    @Nested
+    @DisplayName("PUT /releases/{id}/genres")
+    class UpdateGenres {
+
+        @Test
+        void updateGenres_validRequest_returns200AndPassesBothGenres() throws Exception {
+            when(releaseService.updateGenres(eq(USER_ID), eq(RELEASE_ID), any(ReleaseGenresRequestDTO.class)))
+                .thenReturn(releaseResponse);
+
+            mockMvc.perform(put(RELEASES_URL + "/{id}/genres", RELEASE_ID)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""
+                        { "primaryGenre": "ROCK", "secondaryGenre": null }
+                        """))
+                .andExpect(status().isOk());
+
+            ArgumentCaptor<ReleaseGenresRequestDTO> captor = ArgumentCaptor.forClass(ReleaseGenresRequestDTO.class);
+            verify(releaseService).updateGenres(eq(USER_ID), eq(RELEASE_ID), captor.capture());
+            assertThat(captor.getValue().primaryGenre(), is(Genre.ROCK));
+            assertThat(captor.getValue().secondaryGenre(), is(nullValue()));
+        }
+
+        @ParameterizedTest(name = "[{index}] {0}")
+        @ValueSource(strings = {
+            // primary genre is required
+            """
+            { "secondaryGenre": "POP" }
+            """,
+            // the same genre twice
+            """
+            { "primaryGenre": "POP", "secondaryGenre": "POP" }
+            """,
+            // unknown enum value
+            """
+            { "primaryGenre": "POLKA_STEP" }
+            """
+        })
+        void updateGenres_invalidRequest_returns400AndDoesNotCallService(String body) throws Exception {
+            mockMvc.perform(put(RELEASES_URL + "/{id}/genres", RELEASE_ID)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(body))
+                .andExpect(status().isBadRequest());
+
+            verify(releaseService, never()).updateGenres(anyLong(), anyLong(), any());
+        }
+    }
+
+    // ---------- PUT /releases/{id}/dates ----------
+
+    @Nested
+    @DisplayName("PUT /releases/{id}/dates")
+    class UpdateDates {
+
+        @Test
+        void updateDates_validRequest_returns200AndPassesBothDates() throws Exception {
+            when(releaseService.updateDates(eq(USER_ID), eq(RELEASE_ID), any(ReleaseDatesRequestDTO.class)))
+                .thenReturn(releaseResponse);
+
+            mockMvc.perform(put(RELEASES_URL + "/{id}/dates", RELEASE_ID)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""
+                        { "releaseDate": "2026-12-04", "originalReleaseDate": "2020-05-01" }
+                        """))
+                .andExpect(status().isOk());
+
+            ArgumentCaptor<ReleaseDatesRequestDTO> captor = ArgumentCaptor.forClass(ReleaseDatesRequestDTO.class);
+            verify(releaseService).updateDates(eq(USER_ID), eq(RELEASE_ID), captor.capture());
+            assertThat(captor.getValue().releaseDate(), is(LocalDate.of(2026, 12, 4)));
+            assertThat(captor.getValue().originalReleaseDate(), is(LocalDate.of(2020, 5, 1)));
+        }
+
+        @Test
+        void updateDates_emptyBody_isValidAndClearsBothDates() throws Exception {
+            when(releaseService.updateDates(eq(USER_ID), eq(RELEASE_ID), any(ReleaseDatesRequestDTO.class)))
+                .thenReturn(releaseResponse);
+
+            mockMvc.perform(put(RELEASES_URL + "/{id}/dates", RELEASE_ID)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{}"))
+                .andExpect(status().isOk());
+
+            ArgumentCaptor<ReleaseDatesRequestDTO> captor = ArgumentCaptor.forClass(ReleaseDatesRequestDTO.class);
+            verify(releaseService).updateDates(eq(USER_ID), eq(RELEASE_ID), captor.capture());
+            assertThat(captor.getValue().releaseDate(), is(nullValue()));
+            assertThat(captor.getValue().originalReleaseDate(), is(nullValue()));
+        }
+
+        @ParameterizedTest(name = "[{index}] {0}")
+        @ValueSource(strings = {
+            // original release after the release date
+            """
+            { "releaseDate": "2026-01-01", "originalReleaseDate": "2026-06-01" }
+            """,
+            // the same day is not "before"
+            """
+            { "releaseDate": "2026-01-01", "originalReleaseDate": "2026-01-01" }
+            """,
+            // not a date
+            """
+            { "releaseDate": "next friday" }
+            """
+        })
+        void updateDates_invalidRequest_returns400AndDoesNotCallService(String body) throws Exception {
+            mockMvc.perform(put(RELEASES_URL + "/{id}/dates", RELEASE_ID)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(body))
+                .andExpect(status().isBadRequest());
+
+            verify(releaseService, never()).updateDates(anyLong(), anyLong(), any());
+        }
+
+        @Test
+        void updateDates_missingBody_returns400() throws Exception {
+            mockMvc.perform(put(RELEASES_URL + "/{id}/dates", RELEASE_ID)
+                    .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
         }
     }
 }

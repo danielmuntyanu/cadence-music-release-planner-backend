@@ -47,7 +47,7 @@ public class ReleaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 128)
+    @Column(nullable = false, length = 150)
     private String name;
 
     @Enumerated(EnumType.STRING)

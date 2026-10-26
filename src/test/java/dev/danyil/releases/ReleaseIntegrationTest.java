@@ -7,6 +7,7 @@ import static org.hamcrest.Matchers.emptyArray;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -14,6 +15,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
 import java.util.Arrays;
 import java.util.stream.Collectors;
@@ -444,5 +446,45 @@ class ReleaseIntegrationTest {
         mockMvc.perform(get(artistsUrl + "/{id}", nova).with(as(alice)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.releaseCount", is(2)));
+    }
+
+        // ---------- Genres and dates ----------
+
+    @Test
+    void putGenres_replacesBoth_andFilteringSeesTheChange() throws Exception {
+        long id = createReleaseFromJson(alice, releaseJson("Night Drive", "PLANNING", "POP", "ELECTRONIC"));
+
+        mockMvc.perform(put(releasesUrl + "/{id}/genres", id)
+                .with(as(alice))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{ \"primaryGenre\": \"ROCK\", \"secondaryGenre\": null }"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.primaryGenre", is("ROCK")))
+            .andExpect(jsonPath("$.secondaryGenre").value(nullValue()));
+
+        mockMvc.perform(get(releasesUrl).with(as(alice)).param("genre", "ELECTRONIC"))
+            .andExpect(jsonPath("$.content", hasSize(0)));
+        mockMvc.perform(get(releasesUrl).with(as(alice)).param("genre", "ROCK"))
+            .andExpect(jsonPath("$.content[*].name", contains("Night Drive")));
+    }
+
+    @Test
+    void putDates_withNulls_clearsBothDates() throws Exception {
+        long id = createReleaseFromJson(alice, """
+            { "name": "Night Drive", "primaryGenre": "POP",
+              "releaseDate": "2026-12-04", "originalReleaseDate": "2020-05-01" }
+            """);
+
+        mockMvc.perform(put(releasesUrl + "/{id}/dates", id)
+                .with(as(alice))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+            .andExpect(status().isOk());
+
+        mockMvc.perform(get(releasesUrl + "/{id}", id).with(as(alice)))
+            .andExpect(jsonPath("$.releaseDate").value(nullValue()))
+            .andExpect(jsonPath("$.originalReleaseDate").value(nullValue()));
     }
 }

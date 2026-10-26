@@ -31,6 +31,7 @@ public class ReleaseMapper {
             .releaseDate(entity.getReleaseDate())
             .originalReleaseDate(entity.getOriginalReleaseDate())
             .artists(toArtistResponses(entity.getArtists()))
+            .createdAt(entity.getCreatedAt())
             .build();
     }
 
@@ -48,15 +49,11 @@ public class ReleaseMapper {
             .build();
     }
 
-    // Applies non-null fields; blank text clears the field. Artists are handled by the service. 
+    // Applies non-null fields; blank notes clear the field. Artists are handled by the service.
     public void applyUpdate(ReleaseEntity entity, ReleaseUpdateRequestDTO dto) {
         if (dto.name() != null) entity.setName(dto.name().trim());
         if (dto.type() != null) entity.setType(dto.type());
         if (dto.notes() != null) entity.setNotes(blankToNull(dto.notes()));
-        if (dto.primaryGenre() != null) entity.setPrimaryGenre(dto.primaryGenre());
-        if (dto.secondaryGenre() != null) entity.setSecondaryGenre(dto.secondaryGenre());
-        if (dto.releaseDate() != null) entity.setReleaseDate(dto.releaseDate());
-        if (dto.originalReleaseDate() != null) entity.setOriginalReleaseDate(dto.originalReleaseDate());
     }
 
     private List<ReleaseArtistResponseDTO> toArtistResponses(List<ReleaseArtistEntity> links) {
