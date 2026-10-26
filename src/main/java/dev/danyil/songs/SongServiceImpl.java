@@ -9,6 +9,7 @@ import dev.danyil.contracts.SongService;
 import dev.danyil.mappers.SongMapper;
 import dev.danyil.releases.ReleaseEntity;
 import dev.danyil.releases.ReleaseFinder;
+import dev.danyil.songs.dtos.SongOrderRequestDTO;
 import dev.danyil.songs.dtos.SongRequestDTO;
 import dev.danyil.songs.dtos.SongResponseDTO;
 import dev.danyil.songs.dtos.SongStatusUpdateRequestDTO;
@@ -70,6 +71,19 @@ public class SongServiceImpl implements SongService {
         SongEntity song = findSong(userId, releaseId, songId);
         // orphanRemoval deletes the row; removeSong closes the gap in track numbers
         song.getRelease().removeSong(song);
+    }
+
+    @Override
+    @Transactional
+    public List<SongResponseDTO> reorder(Long userId, Long releaseId, SongOrderRequestDTO request) {
+        ReleaseEntity release = releaseFinder.findOwned(userId, releaseId);
+
+        // Throws InvalidSongOrderException unless the list names every song exactly once
+        release.reorderSongs(request.songIds());
+
+        return release.getSongs().stream()
+            .map(songMapper::toResponse)
+            .toList();
     }
     
     // HELPERS

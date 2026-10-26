@@ -18,6 +18,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import dev.danyil.auth.CustomUserDetails;
 import dev.danyil.contracts.SongService;
+import dev.danyil.songs.dtos.SongOrderRequestDTO;
 import dev.danyil.songs.dtos.SongRequestDTO;
 import dev.danyil.songs.dtos.SongResponseDTO;
 import dev.danyil.songs.dtos.SongStatusUpdateRequestDTO;
@@ -85,5 +86,13 @@ public class SongController {
             @PathVariable Long songId) {
         songService.delete(currentUser.getId(), releaseId, songId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("order")
+    public ResponseEntity<List<SongResponseDTO>> reorder(
+            @AuthenticationPrincipal CustomUserDetails currentUser,
+            @PathVariable Long releaseId,
+            @Valid @RequestBody SongOrderRequestDTO request) {
+        return ResponseEntity.ok(songService.reorder(currentUser.getId(), releaseId, request));
     }
 }
