@@ -28,7 +28,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -39,6 +38,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import dev.danyil.artists.ArtistEntity;
 import dev.danyil.artists.ArtistRepository;
@@ -86,14 +86,15 @@ class ReleaseServiceImplTest {
     @Mock
     private UserRepository userRepository;
 
-    // Real mapper: service tests verify the actual result, not stubbed mapping.
-    @Spy
-    private ReleaseMapper releaseMapper = new ReleaseMapper(key -> "signed:" + key);
-
     @Mock
     private ImageUploadService imageUploads;
 
-    @InjectMocks
+    // Real mapper with a fake signer: responses show which URLs were signed
+    @Spy
+    private ReleaseMapper releaseMapper = new ReleaseMapper(key -> "signed:" + key);
+
+    // Built by hand in setUp: the real ReleaseFinder needs the mocked repository,
+    // which does not exist yet when field initializers run
     private ReleaseServiceImpl releaseService;
 
     private UserEntity owner;
@@ -103,6 +104,11 @@ class ReleaseServiceImplTest {
 
     @BeforeEach
     void setUp() {
+        ReleaseFinder releaseFinder = new ReleaseFinder(releaseRepository);
+        // Argument order must match the final fields of ReleaseServiceImpl
+        releaseService = new ReleaseServiceImpl(
+            releaseMapper, releaseRepository, artistRepository, userRepository, imageUploads, releaseFinder);
+
         owner = new UserEntity();
         owner.setId(USER_ID);
 

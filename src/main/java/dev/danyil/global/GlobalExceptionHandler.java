@@ -22,6 +22,8 @@ import dev.danyil.releases.exceptions.ReleaseException;
 import dev.danyil.releases.exceptions.ReleaseNotFoundException;
 import dev.danyil.releases.exceptions.ReleaseOwnershipException;
 import dev.danyil.security.exceptions.JwtNoExistException;
+import dev.danyil.songs.exceptions.InvalidSongOrderException;
+import dev.danyil.songs.exceptions.SongNotFoundException;
 import dev.danyil.storage.exceptions.StorageException;
 import dev.danyil.users.exceptions.CurrentUserNotFoundException;
 import dev.danyil.users.exceptions.ProfileNotFoundException;
@@ -142,6 +144,20 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ReleaseOwnershipException.class)
     public ResponseEntity<Map<String, String>> handleReleaseOwnershipException(ReleaseOwnershipException e) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("message", e.getMessage()));
+    }
+
+    // SONGS
+
+    @ExceptionHandler(SongNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleSongNotFoundException(SongNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("message", e.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidSongOrderException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidSongOrderException(InvalidSongOrderException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("message", e.getMessage()));
     }
 

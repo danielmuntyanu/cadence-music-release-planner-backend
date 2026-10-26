@@ -52,6 +52,7 @@ public class ReleaseServiceImpl implements ReleaseService {
     private final ArtistRepository artistRepository;
     private final UserRepository userRepository;
     private final ImageUploadService imageUploads;
+    private final ReleaseFinder releaseFinder;
 
     // Enums are stored as strings, so sorting by phase or type would be alphabetical
     // (CATALOG, PLANNING, PRE_RELEASE…), not the lifecycle order; they are filters only.
@@ -173,13 +174,7 @@ public class ReleaseServiceImpl implements ReleaseService {
     // HELPERS
 
     private ReleaseEntity findOwned(Long userId, Long id) {
-        ReleaseEntity release = releaseRepository.findById(id)
-            .orElseThrow(() -> new ReleaseNotFoundException(id));
-
-        if (!release.getUser().getId().equals(userId)) {
-            throw new ReleaseOwnershipException();
-        }
-        return release;
+        return releaseFinder.findOwned(userId, id);
     }
 
     private Specification<ReleaseEntity> buildSpecification(Long userId, ReleaseFilterDTO filter) {
