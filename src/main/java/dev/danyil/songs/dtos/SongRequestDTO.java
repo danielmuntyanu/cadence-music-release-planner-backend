@@ -34,6 +34,6 @@ public record SongRequestDTO(
     @Size(max = 20_000, message = "Lyrics must be at most 20000 characters")
     String lyrics,
 
-    // Primitive: a missing value means "not explicit", never "unknown"
-    boolean explicit
+    // Optional in JSON: a missing value means "not explicit"; the mapper turns null into false
+    Boolean explicit
 ) {}

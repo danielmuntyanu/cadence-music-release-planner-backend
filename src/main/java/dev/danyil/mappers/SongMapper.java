@@ -33,7 +33,7 @@ public class SongMapper {
             .isrc(normalizeIsrc(dto.isrc()))
             .status(dto.status())
             .lyrics(blankToNull(dto.lyrics()))
-            .explicit(dto.explicit())
+            .explicit(Boolean.TRUE.equals(dto.explicit()))
             .build();
     }
 
@@ -44,7 +44,7 @@ public class SongMapper {
         song.setIsrc(normalizeIsrc(dto.isrc()));
         song.setStatus(dto.status());
         song.setLyrics(blankToNull(dto.lyrics()));
-        song.setExplicit(dto.explicit());
+        song.setExplicit(Boolean.TRUE.equals(dto.explicit()));
     }
 
     /** "us-abc-26-00001" → "USABC2600001"; null for blank. */

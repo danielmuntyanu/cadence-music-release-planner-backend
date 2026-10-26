@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 import dev.danyil.artists.exceptions.ArtistAlreadyExistsException;
 import dev.danyil.artists.exceptions.ArtistNotFoundException;
@@ -196,6 +197,11 @@ public class GlobalExceptionHandler {
         System.err.println("### Storage failure:\n" + e.getMessage());
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
             .body(Map.of("message", "File storage is temporarily unavailable. Try again later."));
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<Map<String, String>> handleMissingServletRequestPartException(MissingServletRequestPartException e) {
+        return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
     }
 
     // GENERIC

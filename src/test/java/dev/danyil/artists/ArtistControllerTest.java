@@ -20,6 +20,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 
 import java.util.List;
 
@@ -39,6 +40,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.http.HttpMethod;
+import org.springframework.mock.web.MockMultipartFile;
 
 import dev.danyil.artists.dtos.ArtistCreateRequestDTO;
 import dev.danyil.artists.dtos.ArtistResponseDTO;
@@ -50,9 +53,11 @@ import dev.danyil.artists.exceptions.ArtistOwnershipException;
 import dev.danyil.artists.exceptions.DuplicateSocialPlatformException;
 import dev.danyil.auth.CustomUserDetails;
 import dev.danyil.contracts.ArtistService;
+import dev.danyil.enums.ArtistImage;
 import dev.danyil.enums.SocialPlatform;
 import dev.danyil.global.GlobalExceptionHandler;
 import dev.danyil.users.UserEntity;
+import dev.danyil.media.InvalidImageException;
 
 /**
  * Web layer contract of ArtistController: routing, request validation,
@@ -396,6 +401,105 @@ class ArtistControllerTest {
 
             mockMvc.perform(delete(ARTISTS_URL + "/{id}", ARTIST_ID))
                 .andExpect(status().isForbidden());
+        }
+    }
+
+    // ---------- Images ----------
+
+    @Nested
+    @DisplayName("PUT / DELETE /artists/{id}/avatar and /banner")
+    class Images {
+
+        private final MockMultipartFile file =
+            new MockMultipartFile("file", "picture.png", "image/png", new byte[] { 1, 2, 3 });
+
+        private ArtistResponseDTO withAvatar(String url) {
+            return new ArtistResponseDTO(ARTIST_ID, "Nova", url, null, "Retro sounds", "Synthwave", List.of(), 0L);
+        }
+
+        @Test
+        void uploadAvatar_returns200AndPassesTheAvatarSlot() throws Exception {
+            when(artistService.uploadImage(eq(USER_ID), eq(ARTIST_ID), eq(ArtistImage.AVATAR), any()))
+                .thenReturn(withAvatar("https://signed.test/avatar.jpg"));
+
+            mockMvc.perform(multipart(HttpMethod.PUT, ARTISTS_URL + "/{id}/avatar", ARTIST_ID).file(file))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.avatarUrl", is("https://signed.test/avatar.jpg")));
+
+            ArgumentCaptor<org.springframework.web.multipart.MultipartFile> captor =
+                ArgumentCaptor.forClass(org.springframework.web.multipart.MultipartFile.class);
+            verify(artistService).uploadImage(eq(USER_ID), eq(ARTIST_ID), eq(ArtistImage.AVATAR), captor.capture());
+            assertThat(captor.getValue().getOriginalFilename(), is("picture.png"));
+        }
+
+        @Test
+        void removeAvatar_returns200AndPassesTheAvatarSlot() throws Exception {
+            when(artistService.removeImage(USER_ID, ARTIST_ID, ArtistImage.AVATAR)).thenReturn(withAvatar(null));
+
+            mockMvc.perform(delete(ARTISTS_URL + "/{id}/avatar", ARTIST_ID))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.avatarUrl", nullValue()));
+
+            verify(artistService).removeImage(USER_ID, ARTIST_ID, ArtistImage.AVATAR);
+        }
+
+        @Test
+        void uploadBanner_returns200AndPassesTheBannerSlot() throws Exception {
+            when(artistService.uploadImage(eq(USER_ID), eq(ARTIST_ID), eq(ArtistImage.BANNER), any()))
+                .thenReturn(artistResponse);
+
+            mockMvc.perform(multipart(HttpMethod.PUT, ARTISTS_URL + "/{id}/banner", ARTIST_ID).file(file))
+                .andExpect(status().isOk());
+
+            // The banner endpoint must never write into the avatar slot
+            verify(artistService).uploadImage(eq(USER_ID), eq(ARTIST_ID), eq(ArtistImage.BANNER), any());
+            verify(artistService, never()).uploadImage(anyLong(), anyLong(), eq(ArtistImage.AVATAR), any());
+        }
+
+        @Test
+        void removeBanner_returns200AndPassesTheBannerSlot() throws Exception {
+            when(artistService.removeImage(USER_ID, ARTIST_ID, ArtistImage.BANNER)).thenReturn(artistResponse);
+
+            mockMvc.perform(delete(ARTISTS_URL + "/{id}/banner", ARTIST_ID))
+                .andExpect(status().isOk());
+
+            verify(artistService).removeImage(USER_ID, ARTIST_ID, ArtistImage.BANNER);
+            verify(artistService, never()).removeImage(anyLong(), anyLong(), eq(ArtistImage.AVATAR));
+        }
+
+        @Test
+        void uploadImage_notAnImage_returns400() throws Exception {
+            when(artistService.uploadImage(eq(USER_ID), eq(ARTIST_ID), eq(ArtistImage.BANNER), any()))
+                .thenThrow(new InvalidImageException("The file is not an image"));
+
+            mockMvc.perform(multipart(HttpMethod.PUT, ARTISTS_URL + "/{id}/banner", ARTIST_ID).file(file))
+                .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void uploadImage_artistOfAnotherUser_returns403() throws Exception {
+            when(artistService.uploadImage(eq(USER_ID), eq(ARTIST_ID), eq(ArtistImage.AVATAR), any()))
+                .thenThrow(new ArtistOwnershipException());
+
+            mockMvc.perform(multipart(HttpMethod.PUT, ARTISTS_URL + "/{id}/avatar", ARTIST_ID).file(file))
+                .andExpect(status().isForbidden());
+        }
+
+        @Test
+        void removeImage_missingArtist_returns404() throws Exception {
+            when(artistService.removeImage(USER_ID, ARTIST_ID, ArtistImage.BANNER))
+                .thenThrow(new ArtistNotFoundException(ARTIST_ID));
+
+            mockMvc.perform(delete(ARTISTS_URL + "/{id}/banner", ARTIST_ID))
+                .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void uploadImage_withoutFile_returns400AndDoesNotCallService() throws Exception {
+            mockMvc.perform(multipart(HttpMethod.PUT, ARTISTS_URL + "/{id}/avatar", ARTIST_ID))
+                .andExpect(status().isBadRequest());
+
+            verify(artistService, never()).uploadImage(anyLong(), anyLong(), any(), any());
         }
     }
 }

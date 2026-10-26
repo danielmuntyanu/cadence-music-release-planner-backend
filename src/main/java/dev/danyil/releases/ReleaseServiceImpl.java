@@ -31,8 +31,6 @@ import dev.danyil.releases.dtos.ReleaseResponseDTO;
 import dev.danyil.releases.dtos.ReleaseUpdateRequestDTO;
 import dev.danyil.releases.exceptions.ReleaseAlreadyExistsException;
 import dev.danyil.releases.exceptions.ReleaseException;
-import dev.danyil.releases.exceptions.ReleaseNotFoundException;
-import dev.danyil.releases.exceptions.ReleaseOwnershipException;
 import dev.danyil.users.UserRepository;
 import lombok.RequiredArgsConstructor;
 

@@ -38,7 +38,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 
 import dev.danyil.artists.ArtistEntity;
 import dev.danyil.artists.ArtistRepository;
