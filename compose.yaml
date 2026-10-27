@@ -22,6 +22,8 @@ services:
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-cadence}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-cadence-secret}
+      # The browser uploads audio straight to MinIO from the Vite dev server
+      MINIO_API_CORS_ALLOW_ORIGIN: ${MINIO_API_CORS_ALLOW_ORIGIN:-https://localhost:5173}
     ports:
       - "9000:9000"   # S3 API
       - "9001:9001"   # web object browser

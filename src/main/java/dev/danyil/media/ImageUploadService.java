@@ -14,7 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Stores processed images and keeps storage consistent with the database:
+ * Stores images and keeps storage consistent with the database:
  * a new file is removed if the transaction rolls back, an old file only after it commits.
  */
 @Slf4j
@@ -32,6 +32,21 @@ public class ImageUploadService {
         String key = keyPrefix + "-" + UUID.randomUUID() + image.extension();
 
         storage.upload(key, image.content(), image.contentType());
+        onRollback(() -> deleteQuietly(key));
+        return key;
+    }
+
+    /**
+     * Uploads the image exactly as received, after the same checks as store():
+     * a real JPEG, PNG or WebP within the size limits. For files that leave the app,
+     * such as covers for distributors.
+     */
+    public String storeOriginal(String keyPrefix, MultipartFile file) {
+        byte[] bytes = readBytes(file);
+        ImageFormat format = processor.inspect(bytes);
+        String key = keyPrefix + "-original-" + UUID.randomUUID() + format.extension();
+
+        storage.upload(key, bytes, format.contentType());
         onRollback(() -> deleteQuietly(key));
         return key;
     }

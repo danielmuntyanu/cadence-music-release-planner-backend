@@ -7,34 +7,26 @@ import org.springframework.transaction.annotation.Transactional;
 
 import dev.danyil.contracts.SongService;
 import dev.danyil.mappers.SongMapper;
+import dev.danyil.media.ImageUploadService;
 import dev.danyil.releases.ReleaseEntity;
 import dev.danyil.releases.ReleaseFinder;
 import dev.danyil.songs.dtos.SongOrderRequestDTO;
 import dev.danyil.songs.dtos.SongRequestDTO;
 import dev.danyil.songs.dtos.SongResponseDTO;
 import dev.danyil.songs.dtos.SongStatusUpdateRequestDTO;
-import dev.danyil.songs.exceptions.SongNotFoundException;
 import lombok.RequiredArgsConstructor;
 
-@Service 
-@RequiredArgsConstructor 
+@Service
+@RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class SongServiceImpl implements SongService {
 
     private final ReleaseFinder releaseFinder;
+    private final SongFinder songFinder;
     private final SongRepository songRepository;
     private final SongMapper songMapper;
-    
-    
-    @Override
-    @Transactional
-    public SongResponseDTO create(Long userId, Long releaseId, SongRequestDTO request) {
-        ReleaseEntity release = releaseFinder.findOwned(userId, releaseId);
-
-        SongEntity song = release.addSong(songMapper.toEntity(request));
-        // Saved explicitly so the response already carries the generated id
-        return songMapper.toResponse(songRepository.save(song));
-    }
+    // Deletes a key only after the transaction commits; works for any media, not only images
+    private final ImageUploadService mediaCleanup;
 
     @Override
     public List<SongResponseDTO> getAll(Long userId, Long releaseId) {
@@ -46,13 +38,23 @@ public class SongServiceImpl implements SongService {
 
     @Override
     public SongResponseDTO getById(Long userId, Long releaseId, Long songId) {
-        return songMapper.toResponse(findSong(userId, releaseId, songId));
+        return songMapper.toResponse(songFinder.findOwned(userId, releaseId, songId));
+    }
+
+    @Override
+    @Transactional
+    public SongResponseDTO create(Long userId, Long releaseId, SongRequestDTO request) {
+        ReleaseEntity release = releaseFinder.findOwned(userId, releaseId);
+
+        SongEntity song = release.addSong(songMapper.toEntity(request));
+        // Saved explicitly so the response already carries the generated id
+        return songMapper.toResponse(songRepository.save(song));
     }
 
     @Override
     @Transactional
     public SongResponseDTO replace(Long userId, Long releaseId, Long songId, SongRequestDTO request) {
-        SongEntity song = findSong(userId, releaseId, songId);
+        SongEntity song = songFinder.findOwned(userId, releaseId, songId);
         songMapper.replace(song, request);
         return songMapper.toResponse(song);
     }
@@ -60,17 +62,9 @@ public class SongServiceImpl implements SongService {
     @Override
     @Transactional
     public SongResponseDTO updateStatus(Long userId, Long releaseId, Long songId, SongStatusUpdateRequestDTO request) {
-        SongEntity song = findSong(userId, releaseId, songId);
+        SongEntity song = songFinder.findOwned(userId, releaseId, songId);
         song.setStatus(request.status());
         return songMapper.toResponse(song);
-    }
-
-    @Override
-    @Transactional
-    public void delete(Long userId, Long releaseId, Long songId) {
-        SongEntity song = findSong(userId, releaseId, songId);
-        // orphanRemoval deletes the row; removeSong closes the gap in track numbers
-        song.getRelease().removeSong(song);
     }
 
     @Override
@@ -85,17 +79,15 @@ public class SongServiceImpl implements SongService {
             .map(songMapper::toResponse)
             .toList();
     }
-    
-    // HELPERS
 
-    /**
-     * Ownership is checked on the release first, then the song must belong to that release:
-     * /releases/1/songs/99 must not reach a song of release 2, even one the user owns.
-     */
-    private SongEntity findSong(Long userId, Long releaseId, Long songId) {
-        releaseFinder.findOwned(userId, releaseId);
-        return songRepository.findByIdAndReleaseId(songId, releaseId)
-            .orElseThrow(() -> new SongNotFoundException(songId));
+    @Override
+    @Transactional
+    public void delete(Long userId, Long releaseId, Long songId) {
+        SongEntity song = songFinder.findOwned(userId, releaseId, songId);
+
+        // Rows go by cascade; the audio in storage has to be removed explicitly, after commit
+        song.getFiles().forEach(file -> mediaCleanup.deleteAfterCommit(file.getStorageKey()));
+        // orphanRemoval deletes the row; removeSong closes the gap in track numbers
+        song.getRelease().removeSong(song);
     }
-
 }

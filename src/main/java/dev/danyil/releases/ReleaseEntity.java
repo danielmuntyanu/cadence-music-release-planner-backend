@@ -40,11 +40,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Entity 
+@Entity
 @Table(name = "releases")
-@Getter 
-@Setter 
-@NoArgsConstructor 
+@Getter
+@Setter
+@NoArgsConstructor
 public class ReleaseEntity {
 
     @Id
@@ -65,9 +65,13 @@ public class ReleaseEntity {
     @Column(length = 512)
     private String artworkUrl;
 
-    // Uploaded cover in private storage; wins over artworkUrl (external link or seed data)
+    // Uploaded cover in private storage, resized for the app; wins over artworkUrl (external link or seed data)
     @Column(length = 512)
     private String artworkKey;
+
+    // The same cover exactly as uploaded, for distributors (usually 3000 × 3000)
+    @Column(length = 512)
+    private String artworkOriginalKey;
 
     @Column(length = 1024)
     private String notes;
@@ -99,7 +103,7 @@ public class ReleaseEntity {
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
-    @Builder 
+    @Builder
     public ReleaseEntity(String name, ReleasePhase phase, ReleaseType type, String artworkUrl, String notes, Genre primaryGenre, Genre secondaryGenre,
             LocalDate releaseDate, LocalDate originalReleaseDate, List<ReleaseArtistEntity> artists) {
         this.name = name;
@@ -170,5 +174,4 @@ public class ReleaseEntity {
             songs.get(position).setPosition(position);
         }
     }
-
 }

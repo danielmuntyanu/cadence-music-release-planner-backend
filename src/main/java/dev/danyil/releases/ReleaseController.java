@@ -32,21 +32,22 @@ import dev.danyil.releases.dtos.ReleaseGenresRequestDTO;
 import dev.danyil.releases.dtos.ReleasePhaseUpdateRequestDTO;
 import dev.danyil.releases.dtos.ReleaseResponseDTO;
 import dev.danyil.releases.dtos.ReleaseUpdateRequestDTO;
+import dev.danyil.storage.dtos.DownloadLinkDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-@RestController 
+@RestController
 @RequestMapping(path = "${api-endpoint}/releases")
-@RequiredArgsConstructor 
+@RequiredArgsConstructor
 public class ReleaseController {
-    
+
     private final ReleaseService releaseService;
 
     @PostMapping("")
     public ResponseEntity<ReleaseResponseDTO> create(
             @Valid @RequestBody ReleaseCreateRequestDTO request,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
-        
+
         ReleaseResponseDTO created = releaseService.create(request, currentUser.getId());
 
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
@@ -66,9 +67,9 @@ public class ReleaseController {
 
     @GetMapping("{id}")
     public ResponseEntity<ReleaseResponseDTO> getById(
-            @AuthenticationPrincipal CustomUserDetails currectUser,
+            @AuthenticationPrincipal CustomUserDetails currentUser,
             @PathVariable Long id) {
-        return ResponseEntity.ok(releaseService.getById(currectUser.getId(), id));
+        return ResponseEntity.ok(releaseService.getById(currentUser.getId(), id));
     }
 
     @PatchMapping("{id}")
@@ -78,7 +79,6 @@ public class ReleaseController {
             @Valid @RequestBody ReleaseUpdateRequestDTO request) {
         return ResponseEntity.ok(releaseService.update(currentUser.getId(), id, request));
     }
-
 
     @PatchMapping("{id}/phase")
     public ResponseEntity<ReleaseResponseDTO> updatePhase(
@@ -90,8 +90,8 @@ public class ReleaseController {
 
     @DeleteMapping("{id}")
     public ResponseEntity<Void> delete(
-        @AuthenticationPrincipal CustomUserDetails currentUser,
-        @PathVariable Long id) {
+            @AuthenticationPrincipal CustomUserDetails currentUser,
+            @PathVariable Long id) {
         releaseService.delete(currentUser.getId(), id);
         return ResponseEntity.noContent().build();
     }
@@ -111,6 +111,14 @@ public class ReleaseController {
         return ResponseEntity.ok(releaseService.removeArtwork(currentUser.getId(), id));
     }
 
+    /** A one-off link to the cover as uploaded; the browser saves it instead of showing it. */
+    @GetMapping("{id}/artwork/download")
+    public ResponseEntity<DownloadLinkDTO> artworkDownloadLink(
+            @AuthenticationPrincipal CustomUserDetails currentUser,
+            @PathVariable Long id) {
+        return ResponseEntity.ok(releaseService.artworkDownloadLink(currentUser.getId(), id));
+    }
+
     @PutMapping("{id}/genres")
     public ResponseEntity<ReleaseResponseDTO> updateGenres(
             @AuthenticationPrincipal CustomUserDetails currentUser,
@@ -126,5 +134,4 @@ public class ReleaseController {
             @Valid @RequestBody ReleaseDatesRequestDTO request) {
         return ResponseEntity.ok(releaseService.updateDates(currentUser.getId(), id, request));
     }
-
 }

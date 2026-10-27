@@ -4,21 +4,21 @@ import java.net.URI;
 import java.time.Duration;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.validation.annotation.Validated;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-
-/** Fails at startup with a clear message when no storage profile (minio / r2) is active. */
-@Validated
+/** Storage connection and link lifetimes; the same keys work for MinIO and Cloudflare R2. */
 @ConfigurationProperties(prefix = "storage")
 public record StorageProperties(
-    @NotNull URI endpoint,
-    @NotNull URI publicEndpoint,
-    @NotBlank String region,
-    @NotBlank String accessKey,
-    @NotBlank String secretKey,
-    @NotBlank String bucket,
-    @NotNull Duration signedUrlTtl,
+    // Where the backend talks to storage
+    URI endpoint,
+    // Where the browser opens signed links
+    URI publicEndpoint,
+    String region,
+    String accessKey,
+    String secretKey,
+    String bucket,
+    // Links for showing and playing files: cached and reused
+    Duration signedUrlTtl,
+    // Links for saving a file: created per click, never cached
+    Duration downloadUrlTtl,
     boolean autoCreateBucket
 ) {}

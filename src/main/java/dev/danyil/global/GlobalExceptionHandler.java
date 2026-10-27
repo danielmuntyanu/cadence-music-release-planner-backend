@@ -2,10 +2,12 @@ package dev.danyil.global;
 
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.util.unit.DataSize;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -18,13 +20,17 @@ import dev.danyil.artists.exceptions.ArtistNotFoundException;
 import dev.danyil.artists.exceptions.ArtistOwnershipException;
 import dev.danyil.artists.exceptions.DuplicateSocialPlatformException;
 import dev.danyil.media.InvalidImageException;
+import dev.danyil.releases.exceptions.ArtworkNotFoundException;
 import dev.danyil.releases.exceptions.ReleaseAlreadyExistsException;
 import dev.danyil.releases.exceptions.ReleaseException;
 import dev.danyil.releases.exceptions.ReleaseNotFoundException;
 import dev.danyil.releases.exceptions.ReleaseOwnershipException;
 import dev.danyil.security.exceptions.JwtNoExistException;
+import dev.danyil.songs.exceptions.InvalidAudioFileException;
 import dev.danyil.songs.exceptions.InvalidSongOrderException;
+import dev.danyil.songs.exceptions.SongFileNotFoundException;
 import dev.danyil.songs.exceptions.SongNotFoundException;
+import dev.danyil.songs.exceptions.UploadNotFoundException;
 import dev.danyil.storage.exceptions.StorageException;
 import dev.danyil.users.exceptions.CurrentUserNotFoundException;
 import dev.danyil.users.exceptions.ProfileNotFoundException;
@@ -36,6 +42,9 @@ import io.jsonwebtoken.JwtException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    // Shown in the "too large" message, so it always matches the real limit
+    @Value("${spring.servlet.multipart.max-file-size:30MB}")
+    private DataSize maxUploadSize;
 
     // AUTHENTICATION
 
@@ -93,7 +102,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<Map<String, String>> handleUserNotFoundException(UserNotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Map.of("id" , e.getId().toString(), "message", e.getMessage()));
+                .body(Map.of("id", e.getId().toString(), "message", e.getMessage()));
     }
 
     // ARTISTS
@@ -129,7 +138,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("message", e.getMessage()));
     }
-    
+
     @ExceptionHandler(ReleaseAlreadyExistsException.class)
     public ResponseEntity<Map<String, String>> handleReleaseAlreadyExistsException(ReleaseAlreadyExistsException e) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
@@ -148,6 +157,12 @@ public class GlobalExceptionHandler {
                 .body(Map.of("message", e.getMessage()));
     }
 
+    @ExceptionHandler(ArtworkNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleArtworkNotFoundException(ArtworkNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("message", e.getMessage()));
+    }
+
     // SONGS
 
     @ExceptionHandler(SongNotFoundException.class)
@@ -162,7 +177,27 @@ public class GlobalExceptionHandler {
                 .body(Map.of("message", e.getMessage()));
     }
 
-    // COMMON 
+    // SONG FILES
+
+    @ExceptionHandler(SongFileNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleSongFileNotFoundException(SongFileNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("message", e.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidAudioFileException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidAudioFileException(InvalidAudioFileException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("message", e.getMessage()));
+    }
+
+    @ExceptionHandler(UploadNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleUploadNotFoundException(UploadNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("message", e.getMessage()));
+    }
+
+    // COMMON
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Map<String, String>> handleHttpMessageNotReadableException(HttpMessageNotReadableException e) {
@@ -186,7 +221,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<Map<String, String>> handleTooLarge(MaxUploadSizeExceededException e) {
         return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE)
-            .body(Map.of("message", "The file is too large (max 10 MB)."));
+                .body(Map.of("message", "The file is too large (max " + maxUploadSize.toMegabytes() + " MB)."));
     }
 
     // STORAGE
@@ -196,7 +231,7 @@ public class GlobalExceptionHandler {
         // Key names and SDK details stay in the logs, not in the response
         System.err.println("### Storage failure:\n" + e.getMessage());
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-            .body(Map.of("message", "File storage is temporarily unavailable. Try again later."));
+                .body(Map.of("message", "File storage is temporarily unavailable. Try again later."));
     }
 
     @ExceptionHandler(MissingServletRequestPartException.class)
@@ -211,5 +246,4 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of("message", e.getMessage()));
     }
-
 }

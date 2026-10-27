@@ -42,6 +42,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import dev.danyil.artists.ArtistEntity;
 import dev.danyil.artists.ArtistRepository;
 import dev.danyil.artists.exceptions.ArtistNotFoundException;
+import dev.danyil.contracts.StorageService;
 import dev.danyil.enums.Genre;
 import dev.danyil.enums.ReleasePhase;
 import dev.danyil.enums.ReleaseType;
@@ -59,6 +60,7 @@ import dev.danyil.releases.exceptions.ReleaseAlreadyExistsException;
 import dev.danyil.releases.exceptions.ReleaseException;
 import dev.danyil.releases.exceptions.ReleaseNotFoundException;
 import dev.danyil.releases.exceptions.ReleaseOwnershipException;
+import dev.danyil.storage.StorageProperties;
 import dev.danyil.users.UserEntity;
 import dev.danyil.users.UserRepository;
 
@@ -88,6 +90,12 @@ class ReleaseServiceImplTest {
     @Mock
     private ImageUploadService imageUploads;
 
+    @Mock 
+    private StorageService storage;
+
+    @Mock 
+    private StorageProperties storageProperties;
+
     // Real mapper with a fake signer: responses show which URLs were signed
     @Spy
     private ReleaseMapper releaseMapper = new ReleaseMapper(key -> "signed:" + key);
@@ -106,7 +114,8 @@ class ReleaseServiceImplTest {
         ReleaseFinder releaseFinder = new ReleaseFinder(releaseRepository);
         // Argument order must match the final fields of ReleaseServiceImpl
         releaseService = new ReleaseServiceImpl(
-            releaseMapper, releaseRepository, artistRepository, userRepository, imageUploads, releaseFinder);
+            releaseMapper, releaseRepository, artistRepository, userRepository, imageUploads, releaseFinder,
+            storage, storageProperties);
 
         owner = new UserEntity();
         owner.setId(USER_ID);

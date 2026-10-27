@@ -8,8 +8,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.Locale;
-import java.util.Set;
 
 import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
@@ -28,44 +26,56 @@ import net.coobird.thumbnailator.geometry.Positions;
  * Turns an uploaded file into a safe, normalized JPEG:
  * checks the real format and dimensions, applies EXIF rotation, resizes or crops,
  * flattens transparency and re-encodes without metadata (no GPS or camera data).
+ *
+ * The same checks are available on their own through inspect(), for originals
+ * that must be stored byte for byte.
  */
 @Component
 public class ImageProcessor {
 
-    private static final Set<String> ACCEPTED_FORMATS = Set.of("jpeg", "png", "webp");
     // Guards against "decompression bombs": tiny files that decode to huge bitmaps
     private static final int MAX_SOURCE_SIDE = 8000;
     private static final float JPEG_QUALITY = 0.85f;
 
-    public ProcessedImage process(byte[] source, ImageKind kind) {
-        if (source == null || source.length == 0) throw new InvalidImageException("The file is empty");
+    /** What the header says about an upload: its real format and its size. */
+    private record SourceInfo(ImageFormat format, Dimension size) {}
 
-        Dimension size = readSize(source);
+    public ProcessedImage process(byte[] source, ImageKind kind) {
+        Dimension size = readSource(source).size();
         BufferedImage resized = resize(source, size, kind);
         byte[] jpeg = encodeJpeg(flatten(resized));
 
         return new ProcessedImage(jpeg, "image/jpeg", ".jpg");
     }
 
+    /**
+     * Checks an upload without changing it: a real JPEG, PNG or WebP by content,
+     * within the size limit. Returns its format, for storing the original as is.
+     */
+    public ImageFormat inspect(byte[] source) {
+        return readSource(source).format();
+    }
+
     /** Reads only the header: format and dimensions, without decoding the pixels. */
-    private Dimension readSize(byte[] source) {
+    private SourceInfo readSource(byte[] source) {
+        if (source == null || source.length == 0) throw new InvalidImageException("The file is empty");
+
         try (ImageInputStream input = ImageIO.createImageInputStream(new ByteArrayInputStream(source))) {
             Iterator<ImageReader> readers = ImageIO.getImageReaders(input);
             if (!readers.hasNext()) throw new InvalidImageException("The file is not an image");
 
             ImageReader reader = readers.next();
             try {
-                String format = reader.getFormatName().toLowerCase(Locale.ROOT);
-                if (!ACCEPTED_FORMATS.contains(format)) {
-                    throw new InvalidImageException("Only JPEG, PNG and WebP images are supported");
-                }
+                ImageFormat format = ImageFormat.fromReaderName(reader.getFormatName())
+                    .orElseThrow(() -> new InvalidImageException("Only JPEG, PNG and WebP images are supported"));
+
                 reader.setInput(input);
                 int width = reader.getWidth(0);
                 int height = reader.getHeight(0);
                 if (width > MAX_SOURCE_SIDE || height > MAX_SOURCE_SIDE) {
                     throw new InvalidImageException("The image is too large (max %d px per side)".formatted(MAX_SOURCE_SIDE));
                 }
-                return new Dimension(width, height);
+                return new SourceInfo(format, new Dimension(width, height));
             } finally {
                 reader.dispose();
             }

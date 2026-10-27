@@ -16,5 +16,8 @@ public record SongResponseDTO(
     SongStatus status,
     String lyrics,
     boolean explicit,
+    // The heart: lets the tracklist play a song without loading its files
+    Long primaryFileId,
+    int fileCount,
     Instant createdAt
 ) {}

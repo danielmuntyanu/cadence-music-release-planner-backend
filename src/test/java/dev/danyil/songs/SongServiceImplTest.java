@@ -27,6 +27,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import dev.danyil.enums.Genre;
 import dev.danyil.enums.SongStatus;
 import dev.danyil.mappers.SongMapper;
+import dev.danyil.media.ImageUploadService;
 import dev.danyil.releases.ReleaseEntity;
 import dev.danyil.releases.ReleaseFinder;
 import dev.danyil.releases.ReleaseRepository;
@@ -59,6 +60,9 @@ class SongServiceImplTest {
     @Mock
     private SongRepository songRepository;
 
+    @Mock 
+    private ImageUploadService mediaCleanup;
+
     // Real finder and mapper: ownership and mapping are part of what is tested
     private SongServiceImpl songService;
 
@@ -69,7 +73,9 @@ class SongServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        songService = new SongServiceImpl(new ReleaseFinder(releaseRepository), songRepository, new SongMapper());
+        ReleaseFinder releaseFinder = new ReleaseFinder(releaseRepository);
+        SongFinder songFinder = new SongFinder(releaseFinder, songRepository);
+        songService = new SongServiceImpl(releaseFinder, songFinder, songRepository, new SongMapper(), mediaCleanup);
 
         UserEntity owner = new UserEntity();
         owner.setId(USER_ID);

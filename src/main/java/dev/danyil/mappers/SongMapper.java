@@ -21,6 +21,8 @@ public class SongMapper {
             .status(song.getStatus())
             .lyrics(song.getLyrics())
             .explicit(song.isExplicit())
+            .primaryFileId(song.getPrimaryFile() != null ? song.getPrimaryFile().getId() : null)
+            .fileCount(song.getFiles().size())
             .createdAt(song.getCreatedAt())
             .build();
     }

@@ -113,5 +113,20 @@
     "name": "storage.auto-create-bucket",
     "type": "java.lang.String",
     "description": "A description for 'storage.auto-create-bucket'"
+  },
+  {
+    "name": "storage.audio.max-bytes",
+    "type": "java.lang.String",
+    "description": "A description for 'storage.audio.max-bytes'"
+  },
+  {
+    "name": "storage.audio.upload-url-ttl",
+    "type": "java.lang.String",
+    "description": "A description for 'storage.audio.upload-url-ttl'"
+  },
+  {
+    "name": "storage.download-url-ttl",
+    "type": "java.lang.String",
+    "description": "A description for 'storage.download-url-ttl'"
   }
 ]}

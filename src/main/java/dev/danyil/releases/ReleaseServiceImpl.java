@@ -1,5 +1,14 @@
 package dev.danyil.releases;
 
+import static dev.danyil.releases.ReleaseSpecifications.hasArtist;
+import static dev.danyil.releases.ReleaseSpecifications.inGenres;
+import static dev.danyil.releases.ReleaseSpecifications.inPhases;
+import static dev.danyil.releases.ReleaseSpecifications.inTypes;
+import static dev.danyil.releases.ReleaseSpecifications.nameContains;
+import static dev.danyil.releases.ReleaseSpecifications.ownedBy;
+
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -18,6 +27,7 @@ import dev.danyil.artists.ArtistEntity;
 import dev.danyil.artists.ArtistRepository;
 import dev.danyil.artists.exceptions.ArtistNotFoundException;
 import dev.danyil.contracts.ReleaseService;
+import dev.danyil.contracts.StorageService;
 import dev.danyil.mappers.ReleaseMapper;
 import dev.danyil.media.ImageKind;
 import dev.danyil.media.ImageUploadService;
@@ -29,20 +39,18 @@ import dev.danyil.releases.dtos.ReleaseGenresRequestDTO;
 import dev.danyil.releases.dtos.ReleasePhaseUpdateRequestDTO;
 import dev.danyil.releases.dtos.ReleaseResponseDTO;
 import dev.danyil.releases.dtos.ReleaseUpdateRequestDTO;
+import dev.danyil.releases.exceptions.ArtworkNotFoundException;
 import dev.danyil.releases.exceptions.ReleaseAlreadyExistsException;
 import dev.danyil.releases.exceptions.ReleaseException;
+import dev.danyil.storage.DownloadNames;
+import dev.danyil.storage.StorageProperties;
+import dev.danyil.storage.dtos.DownloadLinkDTO;
 import dev.danyil.users.UserRepository;
 import lombok.RequiredArgsConstructor;
 
-import static dev.danyil.releases.ReleaseSpecifications.hasArtist;
-import static dev.danyil.releases.ReleaseSpecifications.inGenres;
-import static dev.danyil.releases.ReleaseSpecifications.inPhases;
-import static dev.danyil.releases.ReleaseSpecifications.inTypes;
-import static dev.danyil.releases.ReleaseSpecifications.nameContains;
-import static dev.danyil.releases.ReleaseSpecifications.ownedBy;
-@Service 
-@RequiredArgsConstructor 
-@Transactional (readOnly = true)
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ReleaseServiceImpl implements ReleaseService {
 
     private final ReleaseMapper releaseMapper;
@@ -51,12 +59,13 @@ public class ReleaseServiceImpl implements ReleaseService {
     private final UserRepository userRepository;
     private final ImageUploadService imageUploads;
     private final ReleaseFinder releaseFinder;
+    private final StorageService storage;
+    private final StorageProperties storageProperties;
 
     // Enums are stored as strings, so sorting by phase or type would be alphabetical
     // (CATALOG, PLANNING, PRE_RELEASE…), not the lifecycle order; they are filters only.
     private static final Set<String> SORTABLE_FIELDS = Set.of("name", "releaseDate", "createdAt");
 
-    
     @Override
     public Page<ReleaseResponseDTO> getAll(Long userId, ReleaseFilterDTO filter, Pageable pageable) {
         validateSort(pageable);
@@ -70,7 +79,7 @@ public class ReleaseServiceImpl implements ReleaseService {
     }
 
     @Override
-    @Transactional 
+    @Transactional
     public ReleaseResponseDTO create(ReleaseCreateRequestDTO dto, Long userId) {
         String name = dto.name().trim();
         if (releaseRepository.existsByUserIdAndNameIgnoreCase(userId, name)) {
@@ -140,18 +149,32 @@ public class ReleaseServiceImpl implements ReleaseService {
     @Transactional
     public void delete(Long userId, Long id) {
         ReleaseEntity release = findOwned(userId, id);
-        imageUploads.deleteAfterCommit(release.getArtworkKey());
+
+        // Rows go by cascade; files in storage have to be removed explicitly, after commit
+        deleteArtworkFiles(release);
+        release.getSongs().stream()
+            .flatMap(song -> song.getFiles().stream())
+            .forEach(file -> imageUploads.deleteAfterCommit(file.getStorageKey()));
+
         releaseRepository.delete(release);
     }
 
+    /**
+     * Keeps two copies: the resized one the app shows, and the file exactly as uploaded,
+     * which is what distributors need (usually 3000 × 3000).
+     */
     @Override
     @Transactional
     public ReleaseResponseDTO uploadArtwork(Long userId, Long id, MultipartFile file) {
         ReleaseEntity release = findOwned(userId, id);
+        String prefix = MediaKeys.releaseArtwork(userId, id);
 
-        String key = imageUploads.store(MediaKeys.releaseArtwork(userId, id), ImageKind.ARTWORK, file);
-        imageUploads.deleteAfterCommit(release.getArtworkKey());
-        release.setArtworkKey(key);
+        String displayKey = imageUploads.store(prefix, ImageKind.ARTWORK, file);
+        String originalKey = imageUploads.storeOriginal(prefix, file);
+
+        deleteArtworkFiles(release);
+        release.setArtworkKey(displayKey);
+        release.setArtworkOriginalKey(originalKey);
         release.setArtworkUrl(null);
 
         return releaseMapper.toResponse(release);
@@ -162,17 +185,39 @@ public class ReleaseServiceImpl implements ReleaseService {
     public ReleaseResponseDTO removeArtwork(Long userId, Long id) {
         ReleaseEntity release = findOwned(userId, id);
 
-        imageUploads.deleteAfterCommit(release.getArtworkKey());
-        release.setArtworkKey(null);
+        deleteArtworkFiles(release);
         release.setArtworkUrl(null);
 
         return releaseMapper.toResponse(release);
+    }
+
+    @Override
+    public DownloadLinkDTO artworkDownloadLink(Long userId, Long id) {
+        ReleaseEntity release = findOwned(userId, id);
+
+        // Covers uploaded before originals were kept only have the resized copy
+        String key = release.getArtworkOriginalKey() != null
+            ? release.getArtworkOriginalKey()
+            : release.getArtworkKey();
+        if (key == null) throw new ArtworkNotFoundException(id);
+
+        Duration ttl = storageProperties.downloadUrlTtl();
+        String name = DownloadNames.of(release.getName() + " - cover", DownloadNames.extensionOf(key));
+        return new DownloadLinkDTO(storage.presignDownload(key, name, ttl), Instant.now().plus(ttl));
     }
 
     // HELPERS
 
     private ReleaseEntity findOwned(Long userId, Long id) {
         return releaseFinder.findOwned(userId, id);
+    }
+
+    /** Both copies of the cover go together: the resized one and the original. */
+    private void deleteArtworkFiles(ReleaseEntity release) {
+        imageUploads.deleteAfterCommit(release.getArtworkKey());
+        imageUploads.deleteAfterCommit(release.getArtworkOriginalKey());
+        release.setArtworkKey(null);
+        release.setArtworkOriginalKey(null);
     }
 
     private Specification<ReleaseEntity> buildSpecification(Long userId, ReleaseFilterDTO filter) {
@@ -214,6 +259,4 @@ public class ReleaseServiceImpl implements ReleaseService {
             }
         });
     }
-
-
 }

@@ -1,16 +1,22 @@
 package dev.danyil.storage;
 
 import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
 import dev.danyil.contracts.StorageService;
+import dev.danyil.storage.dtos.PresignedUpload;
 import dev.danyil.storage.dtos.StoredObjectInfo;
 import dev.danyil.storage.exceptions.StorageException;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +27,7 @@ import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +35,9 @@ public class S3StorageService implements StorageService {
 
     // Above this size, expired entries are dropped so the cache cannot grow without bound
     private static final int CACHE_PURGE_THRESHOLD = 10_000;
+
+    // Signed headers the browser sets on its own and does not allow scripts to set
+    private static final Set<String> BROWSER_MANAGED_HEADERS = Set.of("host", "content-length");
 
     private final S3Client s3;
     private final S3Presigner presigner;
@@ -105,10 +115,49 @@ public class S3StorageService implements StorageService {
     }
 
     @Override
-    public URL presignPut(String key, String contentType, Duration ttl) {
-        return presigner.presignPutObject(request -> request
+    public PresignedUpload presignPut(String key, String contentType, long contentLength, Duration ttl) {
+        PresignedPutObjectRequest presigned = presigner.presignPutObject(request -> request
+            .signatureDuration(ttl)
+            .putObjectRequest(put -> put
+                .bucket(properties.bucket())
+                .key(key)
+                .contentType(contentType)
+                .contentLength(contentLength)));
+
+        return new PresignedUpload(presigned.url().toString(), presigned.expiration(), headersForBrowser(presigned));
+    }
+
+    @Override
+    public String presignDownload(String key, String filename, Duration ttl) {
+        return presigner.presignGetObject(request -> request
                 .signatureDuration(ttl)
-                .putObjectRequest(put -> put.bucket(properties.bucket()).key(key).contentType(contentType)))
-            .url();
+                .getObjectRequest(get -> get
+                    .bucket(properties.bucket())
+                    .key(key)
+                    .responseContentDisposition(attachment(filename))))
+            .url()
+            .toString();
+    }
+
+    // HELPERS
+
+    /**
+     * Every header that is part of the signature must reach storage unchanged. The browser
+     * adds Host and Content-Length itself; the rest (Content-Type at least) the page must send.
+     */
+    private static Map<String, String> headersForBrowser(PresignedPutObjectRequest presigned) {
+        return presigned.signedHeaders().entrySet().stream()
+            .filter(header -> !BROWSER_MANAGED_HEADERS.contains(header.getKey().toLowerCase(Locale.ROOT)))
+            .collect(Collectors.toMap(Map.Entry::getKey, header -> String.join(",", header.getValue())));
+    }
+
+    /**
+     * Two file names: a plain ASCII one for old clients and an RFC 5987 one for the rest,
+     * so "Lía Montes - Neon Siesta.png" keeps its accents in every modern browser.
+     */
+    static String attachment(String filename) {
+        String ascii = filename.replaceAll("[^\\x20-\\x7E]", "_").replace("\"", "'");
+        String encoded = URLEncoder.encode(filename, StandardCharsets.UTF_8).replace("+", "%20");
+        return "attachment; filename=\"" + ascii + "\"; filename*=UTF-8''" + encoded;
     }
 }
