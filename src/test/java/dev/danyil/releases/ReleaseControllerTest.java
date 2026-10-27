@@ -24,6 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -62,9 +63,11 @@ import dev.danyil.releases.dtos.ReleaseGenresRequestDTO;
 import dev.danyil.releases.dtos.ReleasePhaseUpdateRequestDTO;
 import dev.danyil.releases.dtos.ReleaseResponseDTO;
 import dev.danyil.releases.dtos.ReleaseUpdateRequestDTO;
+import dev.danyil.releases.exceptions.ArtworkNotFoundException;
 import dev.danyil.releases.exceptions.ReleaseAlreadyExistsException;
 import dev.danyil.releases.exceptions.ReleaseNotFoundException;
 import dev.danyil.releases.exceptions.ReleaseOwnershipException;
+import dev.danyil.storage.dtos.DownloadLinkDTO;
 import dev.danyil.users.UserEntity;
 
 /**
@@ -604,6 +607,29 @@ class ReleaseControllerTest {
             mockMvc.perform(put(RELEASES_URL + "/{id}/dates", RELEASE_ID)
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /releases/{id}/artwork/download")
+    class ArtworkDownload {
+
+        @Test
+        void returns200WithTheLink() throws Exception {
+            when(releaseService.artworkDownloadLink(USER_ID, RELEASE_ID))
+                .thenReturn(new DownloadLinkDTO("https://storage.test/cover", Instant.parse("2026-10-27T12:05:00Z")));
+
+            mockMvc.perform(get(RELEASES_URL + "/{id}/artwork/download", RELEASE_ID))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.url", is("https://storage.test/cover")));
+        }
+
+        @Test
+        void releaseWithoutUploadedCover_returns404() throws Exception {
+            when(releaseService.artworkDownloadLink(USER_ID, RELEASE_ID)).thenThrow(new ArtworkNotFoundException(RELEASE_ID));
+
+            mockMvc.perform(get(RELEASES_URL + "/{id}/artwork/download", RELEASE_ID))
+                .andExpect(status().isNotFound());
         }
     }
 }

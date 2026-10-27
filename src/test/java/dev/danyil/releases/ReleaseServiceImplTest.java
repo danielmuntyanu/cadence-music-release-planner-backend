@@ -11,11 +11,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -56,11 +58,15 @@ import dev.danyil.releases.dtos.ReleaseGenresRequestDTO;
 import dev.danyil.releases.dtos.ReleasePhaseUpdateRequestDTO;
 import dev.danyil.releases.dtos.ReleaseResponseDTO;
 import dev.danyil.releases.dtos.ReleaseUpdateRequestDTO;
+import dev.danyil.releases.exceptions.ArtworkNotFoundException;
 import dev.danyil.releases.exceptions.ReleaseAlreadyExistsException;
 import dev.danyil.releases.exceptions.ReleaseException;
 import dev.danyil.releases.exceptions.ReleaseNotFoundException;
 import dev.danyil.releases.exceptions.ReleaseOwnershipException;
+import dev.danyil.songs.SongEntity;
+import dev.danyil.songs.SongFileEntity;
 import dev.danyil.storage.StorageProperties;
+import dev.danyil.storage.dtos.DownloadLinkDTO;
 import dev.danyil.users.UserEntity;
 import dev.danyil.users.UserRepository;
 
@@ -627,6 +633,102 @@ class ReleaseServiceImplTest {
 
             assertThrows(ReleaseNotFoundException.class,
                 () -> releaseService.updateDates(USER_ID, RELEASE_ID, new ReleaseDatesRequestDTO(null, null)));
+        }
+    }
+
+    // ---------- Cover originals, downloads, and audio cleanup ----------
+
+    @Nested
+    @DisplayName("cover originals and file cleanup")
+    class Files {
+
+        @Test
+        void uploadArtwork_keepsTheResizedCopyAndTheOriginal_andDropsBothOldOnes() {
+            release.setArtworkKey("old-display.jpg");
+            release.setArtworkOriginalKey("old-original.png");
+            givenReleaseExists();
+            MockMultipartFile file = new MockMultipartFile("file", "cover.png", "image/png", new byte[] { 1 });
+            when(imageUploads.store(anyString(), eq(ImageKind.ARTWORK), eq(file))).thenReturn("new-display.jpg");
+            when(imageUploads.storeOriginal(anyString(), eq(file))).thenReturn("new-original.png");
+
+            releaseService.uploadArtwork(USER_ID, RELEASE_ID, file);
+
+            assertThat(release.getArtworkKey(), is("new-display.jpg"));
+            assertThat(release.getArtworkOriginalKey(), is("new-original.png"));
+            verify(imageUploads).deleteAfterCommit("old-display.jpg");
+            verify(imageUploads).deleteAfterCommit("old-original.png");
+        }
+
+        @Test
+        void removeArtwork_removesBothCopies() {
+            release.setArtworkKey("display.jpg");
+            release.setArtworkOriginalKey("original.png");
+            givenReleaseExists();
+
+            releaseService.removeArtwork(USER_ID, RELEASE_ID);
+
+            assertThat(release.getArtworkKey(), is(nullValue()));
+            assertThat(release.getArtworkOriginalKey(), is(nullValue()));
+            verify(imageUploads).deleteAfterCommit("display.jpg");
+            verify(imageUploads).deleteAfterCommit("original.png");
+        }
+
+        @Test
+        void delete_alsoRemovesTheAudioOfEverySong() {
+            SongEntity song = release.addSong(SongEntity.builder().title("Intro").build());
+            song.addFile(SongFileEntity.builder().storageKey("users/1000/song-files/a.wav").displayName("demo")
+                .originalFilename("demo.wav").contentType("audio/wav").sizeBytes(1).build());
+            song.addFile(SongFileEntity.builder().storageKey("users/1000/song-files/b.wav").displayName("mix")
+                .originalFilename("mix.wav").contentType("audio/wav").sizeBytes(1).build());
+            givenReleaseExists();
+
+            releaseService.delete(USER_ID, RELEASE_ID);
+
+            verify(imageUploads).deleteAfterCommit("users/1000/song-files/a.wav");
+            verify(imageUploads).deleteAfterCommit("users/1000/song-files/b.wav");
+            verify(releaseRepository).delete(release);
+        }
+
+        @Test
+        void artworkDownloadLink_prefersTheOriginal() {
+            release.setArtworkKey("display.jpg");
+            release.setArtworkOriginalKey("original.png");
+            givenReleaseExists();
+            when(storageProperties.downloadUrlTtl()).thenReturn(Duration.ofMinutes(5));
+            when(storage.presignDownload("original.png", "Night Drive - cover.png", Duration.ofMinutes(5)))
+                .thenReturn("https://storage.test/cover.png");
+
+            DownloadLinkDTO link = releaseService.artworkDownloadLink(USER_ID, RELEASE_ID);
+
+            assertThat(link.url(), is("https://storage.test/cover.png"));
+        }
+
+        @Test
+        void artworkDownloadLink_olderCoversWithoutOriginal_fallBackToTheResizedCopy() {
+            release.setArtworkKey("display.jpg");
+            givenReleaseExists();
+            when(storageProperties.downloadUrlTtl()).thenReturn(Duration.ofMinutes(5));
+            when(storage.presignDownload("display.jpg", "Night Drive - cover.jpg", Duration.ofMinutes(5)))
+                .thenReturn("https://storage.test/cover.jpg");
+
+            assertThat(releaseService.artworkDownloadLink(USER_ID, RELEASE_ID).url(), is("https://storage.test/cover.jpg"));
+        }
+
+        @Test
+        void artworkDownloadLink_withoutUploadedCover_isNotFound() {
+            // An external link (artworkUrl) is not in our storage, so there is nothing to sign
+            release.setArtworkUrl("https://img.test/external.jpg");
+            givenReleaseExists();
+
+            assertThrows(ArtworkNotFoundException.class, () -> releaseService.artworkDownloadLink(USER_ID, RELEASE_ID));
+        }
+
+        @Test
+        void artworkDownloadLink_otherUser_isRejected() {
+            givenReleaseExists();
+
+            assertThrows(ReleaseOwnershipException.class, () -> releaseService.artworkDownloadLink(OTHER_USER_ID, RELEASE_ID));
+            verify(storage, never()).presignDownload(anyString(), anyString(), any());
         }
     }
 

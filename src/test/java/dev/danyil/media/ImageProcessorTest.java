@@ -10,6 +10,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 import javax.imageio.ImageIO;
 
@@ -114,5 +115,51 @@ class ImageProcessorTest {
         // 9000 x 10 is small in memory but exceeds the per-side limit
         assertThrows(InvalidImageException.class,
             () -> processor.process(image("png", 9000, 10, false), ImageKind.BANNER));
+    }
+
+    // ---------- inspect: checks without changing ----------
+
+    private static byte[] encode(String format, int width, int height) throws Exception {
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ImageIO.write(image, format, out);
+        return out.toByteArray();
+    }
+
+    @Test
+    void inspect_recognisesTheFormatByContent() throws Exception {
+        assertThat(processor.inspect(encode("png", 10, 10)), is(ImageFormat.PNG));
+        assertThat(processor.inspect(encode("jpg", 10, 10)), is(ImageFormat.JPEG));
+    }
+
+    @Test
+    void inspect_rejectsWhatIsNotAnImage() {
+        byte[] html = "<html>not a cover</html>".getBytes(StandardCharsets.UTF_8);
+
+        assertThrows(InvalidImageException.class, () -> processor.inspect(html));
+    }
+
+    @Test
+    void inspect_rejectsAnUnsupportedFormat() throws Exception {
+        assertThrows(InvalidImageException.class, () -> processor.inspect(encode("gif", 10, 10)));
+    }
+
+    @Test
+    void inspect_rejectsImagesOverTheSideLimit() throws Exception {
+        // 8001 × 1 is a tiny bitmap, so the test is fast; only the width is over the limit
+        assertThrows(InvalidImageException.class, () -> processor.inspect(encode("png", 8001, 1)));
+    }
+
+    @Test
+    void inspect_rejectsAnEmptyFile() {
+        assertThrows(InvalidImageException.class, () -> processor.inspect(new byte[0]));
+    }
+
+    @Test
+    void inspect_andProcess_applyTheSameChecks() throws Exception {
+        byte[] tooWide = encode("png", 8001, 1);
+
+        assertThrows(InvalidImageException.class, () -> processor.inspect(tooWide));
+        assertThrows(InvalidImageException.class, () -> processor.process(tooWide, ImageKind.ARTWORK));
     }
 }

@@ -1,13 +1,16 @@
 package dev.danyil.media;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.matchesPattern;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -49,7 +52,7 @@ class ImageUploadServiceTest {
 
     @BeforeEach
     void givenProcessorAcceptsTheFile() {
-        org.mockito.Mockito.lenient()
+        lenient()
             .when(processor.process(any(), any()))
             .thenReturn(new ProcessedImage(JPEG, "image/jpeg", ".jpg"));
     }
@@ -68,6 +71,8 @@ class ImageUploadServiceTest {
         int status = committed ? TransactionSynchronization.STATUS_COMMITTED : TransactionSynchronization.STATUS_ROLLED_BACK;
         synchronizations.forEach(sync -> sync.afterCompletion(status));
     }
+
+    // ---------- store ----------
 
     @Test
     void store_uploadsTheProcessedImageUnderAUniqueKey() {
@@ -115,6 +120,71 @@ class ImageUploadServiceTest {
 
         verify(storage, never()).delete(anyString());
     }
+
+    // ---------- storeOriginal ----------
+
+    @Test
+    void storeOriginal_uploadsTheBytesUnchanged_withTheDetectedType() {
+        byte[] original = { 1, 2, 3, 4 };
+        MockMultipartFile upload = new MockMultipartFile("file", "cover.png", "image/png", original);
+        when(processor.inspect(original)).thenReturn(ImageFormat.PNG);
+
+        String key = imageUploads.storeOriginal("users/1/releases/5/artwork", upload);
+
+        assertThat(key, startsWith("users/1/releases/5/artwork-original-"));
+        assertThat(key, endsWith(".png"));
+        verify(storage).upload(key, original, "image/png");
+        // The original is never resized or re-encoded
+        verify(processor, never()).process(any(), any());
+    }
+
+    @Test
+    void storeOriginal_trustsTheContent_notTheFileName() {
+        byte[] original = { 1, 2, 3 };
+        // Named .png, but the content is a JPEG
+        MockMultipartFile upload = new MockMultipartFile("file", "cover.png", "image/png", original);
+        when(processor.inspect(original)).thenReturn(ImageFormat.JPEG);
+
+        String key = imageUploads.storeOriginal("prefix", upload);
+
+        assertThat(key, endsWith(".jpg"));
+        verify(storage).upload(key, original, "image/jpeg");
+    }
+
+    @Test
+    void storeOriginal_invalidImage_uploadsNothing() {
+        byte[] original = { 1, 2, 3 };
+        MockMultipartFile upload = new MockMultipartFile("file", "cover.png", "image/png", original);
+        when(processor.inspect(original)).thenThrow(new InvalidImageException("The file is not an image"));
+
+        assertThrows(InvalidImageException.class, () -> imageUploads.storeOriginal("prefix", upload));
+
+        verify(storage, never()).upload(anyString(), any(), anyString());
+    }
+
+    @Test
+    void storeOriginal_emptyFile_isRejectedBeforeInspecting() {
+        MockMultipartFile empty = new MockMultipartFile("file", "cover.png", "image/png", new byte[0]);
+
+        assertThrows(InvalidImageException.class, () -> imageUploads.storeOriginal("prefix", empty));
+
+        verify(processor, never()).inspect(any());
+    }
+
+    @Test
+    void storeOriginal_rolledBackTransaction_deletesTheNewFile() {
+        byte[] original = { 1, 2, 3 };
+        MockMultipartFile upload = new MockMultipartFile("file", "cover.png", "image/png", original);
+        when(processor.inspect(original)).thenReturn(ImageFormat.PNG);
+        TransactionSynchronizationManager.initSynchronization();
+
+        String key = imageUploads.storeOriginal("prefix", upload);
+        completeTransaction(false);
+
+        verify(storage).delete(key);
+    }
+
+    // ---------- deleteAfterCommit ----------
 
     @Test
     void deleteAfterCommit_waitsForTheCommit() {

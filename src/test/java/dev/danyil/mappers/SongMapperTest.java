@@ -10,6 +10,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 import dev.danyil.enums.SongStatus;
 import dev.danyil.songs.SongEntity;
+import dev.danyil.songs.SongFileEntity;
 import dev.danyil.songs.dtos.SongRequestDTO;
 import dev.danyil.songs.dtos.SongResponseDTO;
 
@@ -79,5 +80,31 @@ class SongMapperTest {
         SongEntity song = mapper.toEntity(new SongRequestDTO("Intro", null, null, SongStatus.WRITING, null, null));
 
         assertThat(song.isExplicit(), is(false));
+    }
+
+    @Test
+    void toResponse_songWithoutFiles_hasNoPrimaryAndZeroCount() {
+        SongResponseDTO response = mapper.toResponse(mapper.toEntity(request("Intro", null, null, null, false)));
+
+        assertThat(response.primaryFileId(), is(nullValue()));
+        assertThat(response.fileCount(), is(0));
+    }
+
+    @Test
+    void toResponse_reportsThePrimaryFileAndHowManyFilesThereAre() {
+        SongEntity song = mapper.toEntity(request("Intro", null, null, null, false));
+        for (long id = 8100L; id <= 8300L; id += 100) {
+            SongFileEntity file = SongFileEntity.builder()
+                .storageKey("users/1/song-files/" + id + ".wav").displayName("take " + id)
+                .originalFilename("take.wav").contentType("audio/wav").sizeBytes(1).build();
+            file.setId(id);
+            song.addFile(file);
+        }
+
+        SongResponseDTO response = mapper.toResponse(song);
+
+        // The first file added became primary
+        assertThat(response.primaryFileId(), is(8100L));
+        assertThat(response.fileCount(), is(3));
     }
 }
