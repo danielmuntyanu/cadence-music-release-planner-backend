@@ -290,4 +290,33 @@ class SongIntegrationTest {
 
         assertThat(songRepository.count(), is(0L));
     }
+
+    // ---------- Release progress ----------
+
+    @Test
+    void releaseResponse_reflectsItsSongs() throws Exception {
+        long releaseId = createRelease(alice, "Neon Siesta");
+        long writing = createSong(alice, releaseId, "Paper Moon Avenue");
+        long done = createSong(alice, releaseId, "Siesta Lights");
+
+        mockMvc.perform(patch(songsUrl(releaseId) + "/" + done + "/status")
+                .with(as(alice)).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{ \"status\": \"DONE\" }"))
+            .andExpect(status().isOk());
+
+        mockMvc.perform(put(songsUrl(releaseId) + "/" + writing)
+                .with(as(alice)).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{ \"title\": \"Paper Moon Avenue\", \"status\": \"WRITING\", \"explicit\": true }"))
+            .andExpect(status().isOk());
+
+        // (0 + 1) / 2 = 50 %
+        mockMvc.perform(get(apiEndpoint + "/releases/" + releaseId).with(as(alice)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.songCount", is(2)))
+            .andExpect(jsonPath("$.doneSongCount", is(1)))
+            .andExpect(jsonPath("$.progressPercent", is(50)))
+            .andExpect(jsonPath("$.explicit", is(true)));
+    }
 }

@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Component;
 
+import dev.danyil.enums.SongStatus;
 import dev.danyil.media.MediaUrlResolver;
 import dev.danyil.release_artists.ReleaseArtistEntity;
 import dev.danyil.releases.ReleaseEntity;
@@ -11,6 +12,7 @@ import dev.danyil.releases.dtos.ReleaseArtistResponseDTO;
 import dev.danyil.releases.dtos.ReleaseCreateRequestDTO;
 import dev.danyil.releases.dtos.ReleaseResponseDTO;
 import dev.danyil.releases.dtos.ReleaseUpdateRequestDTO;
+import dev.danyil.songs.SongEntity;
 import lombok.RequiredArgsConstructor;
 
 @Component
@@ -32,6 +34,12 @@ public class ReleaseMapper {
             .originalReleaseDate(entity.getOriginalReleaseDate())
             .artists(toArtistResponses(entity.getArtists()))
             .createdAt(entity.getCreatedAt())
+            .songCount(entity.getSongs().size())
+            .doneSongCount((int) entity.getSongs().stream()
+                .filter(song -> song.getStatus() == SongStatus.DONE)
+                .count())
+            .progressPercent(progressPercent(entity.getSongs()))
+            .explicit(entity.getSongs().stream().anyMatch(SongEntity::isExplicit))
             .build();
     }
 
@@ -69,5 +77,15 @@ public class ReleaseMapper {
 
     private static String blankToNull(String value) {
         return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    /** Average workflow progress of the songs as a whole percentage; 0 without songs. */
+    static int progressPercent(List<SongEntity> songs) {
+        if (songs.isEmpty()) return 0;
+        double average = songs.stream()
+            .mapToDouble(song -> song.getStatus().progress())
+            .average()
+            .orElse(0);
+        return (int) Math.round(average * 100);
     }
 }

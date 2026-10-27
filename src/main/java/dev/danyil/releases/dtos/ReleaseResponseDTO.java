@@ -23,5 +23,12 @@ public record ReleaseResponseDTO(
     LocalDate originalReleaseDate,
     // Ordered by position: the first artist is the primary one
     List<ReleaseArtistResponseDTO> artists,
-    Instant createdAt
+    Instant createdAt,
+    // Derived from the songs on every read, never stored
+    int songCount,
+    int doneSongCount,
+    // Average workflow progress of the songs, 0..100
+    int progressPercent,
+    // True when at least one song is explicit, as distributors mark releases
+    boolean explicit
 ) {}

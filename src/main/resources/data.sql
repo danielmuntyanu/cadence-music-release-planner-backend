@@ -66,3 +66,39 @@ INSERT INTO artist_socials (artist_id, platform, url)
 VALUES
   ((SELECT id FROM artists WHERE name = 'Lía Montes'), 'WEBSITE', 'https://example.com/lía-montes'),
   ((SELECT id FROM artists WHERE name = 'Niebla Norte'), 'WEBSITE', 'https://example.com/niebla-norte');
+
+-- Demo release
+INSERT INTO releases (name, type, phase, artwork_url, notes, primary_genre, secondary_genre, release_date, created_at, user_id)
+VALUES (
+  'Neon Siesta',
+  'EP',
+  'PRODUCTION',
+  'https://picsum.photos/seed/neon-siesta/1200/1200',
+  'Debut EP. Synth stems for track 3 are in the shared drive: https://example.com/neon-siesta/stems',
+  'POP',
+  'ELECTRONIC',
+  '2026-12-04',
+  CURRENT_TIMESTAMP,
+  (SELECT id FROM users WHERE username = 'user1')
+);
+
+INSERT INTO release_artists (release_id, artist_id, position)
+VALUES (
+  (SELECT id FROM releases WHERE name = 'Neon Siesta'),
+  (SELECT id FROM artists WHERE name = 'Lía Montes'),
+  0
+);
+
+INSERT INTO songs (release_id, title, position, duration_seconds, isrc, status, lyrics, explicit, created_at)
+VALUES
+  ((SELECT id FROM releases WHERE name = 'Neon Siesta'), 'Siesta Lights', 0, 204, 'ESZZZ2600001', 'DONE',
+   'Shutters down at three o''clock
+The city hums in coral light', false, CURRENT_TIMESTAMP),
+  ((SELECT id FROM releases WHERE name = 'Neon Siesta'), 'Piano Before Midnight', 1, 231, 'ESZZZ2600002', 'MIXING_MASTERING',
+   NULL, false, CURRENT_TIMESTAMP),
+  ((SELECT id FROM releases WHERE name = 'Neon Siesta'), 'Coral Static', 2, 198, NULL, 'RECORDING',
+   NULL, true, CURRENT_TIMESTAMP),
+  ((SELECT id FROM releases WHERE name = 'Neon Siesta'), 'Paper Moon Avenue', 3, NULL, NULL, 'ARRANGEMENT',
+   NULL, false, CURRENT_TIMESTAMP),
+  ((SELECT id FROM releases WHERE name = 'Neon Siesta'), 'Untitled (Voice Memo 14)', 4, NULL, NULL, 'WRITING',
+   NULL, false, CURRENT_TIMESTAMP);

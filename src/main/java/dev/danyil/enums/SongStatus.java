@@ -9,5 +9,10 @@ public enum SongStatus {
     ARRANGEMENT,
     RECORDING,
     MIXING_MASTERING,
-    DONE
+    DONE;
+
+    /** How far along the workflow this stage is: WRITING = 0.0, DONE = 1.0. */
+    public double progress() {
+        return ordinal() / (double) (values().length - 1);
+    }
 }
