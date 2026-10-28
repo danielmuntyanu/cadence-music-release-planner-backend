@@ -24,7 +24,7 @@ public record ReleaseCreateRequestDTO(
     // Optional: new releases start in PLANNING
     ReleasePhase phase,
 
-    @Size(max = 1024, message = "Notes must be at most 1024 characters")
+    @Size(max = 10_000, message = "Notes must be at most 10000 characters")
     String notes,
 
     @NotNull(message = "Primary genre is required")

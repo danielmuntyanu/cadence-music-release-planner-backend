@@ -73,7 +73,8 @@ public class ReleaseEntity {
     @Column(length = 512)
     private String artworkOriginalKey;
 
-    @Column(length = 1024)
+    // Unbounded in the database; the limit lives in the request DTOs
+    @Column(columnDefinition = "text")
     private String notes;
 
     @Enumerated(EnumType.STRING)
