@@ -1,91 +1,117 @@
-# Cadence — Music Release Planner
+# Cadence — Music Release Planner · Frontend
 
 🔗 **Frontend repo:** [cadence-frontend](https://github.com/danielmuntyanu/cadence-music-release-planner-frontend)
+
 🔗 **Backend repo:** [cadence-backend](https://github.com/danielmuntyanu/cadence-music-release-planner-backend)
+
+📖 **Documentation:** [Backend wiki](https://github.com/danielmuntyanu/cadence-music-release-planner-backend/wiki) · [Frontend wiki](https://github.com/danielmuntyanu/cadence-music-release-planner-frontend/wiki)
 
 ## Project Concept
 
-Cadence is a planning and coordination tool built for independent musicians and small labels to manage the full lifecycle of a music release — not just as a status tracker, but as a **timeline-driven planner** for everything that happens around a release: mastering deadlines, artwork approval, distribution windows, promo posts, and more.
+Cadence is a workspace for independent musicians and small labels to run a release from first demo to finished master.
 
-Most artists currently juggle this process across spreadsheets, sticky notes, and DMs. Cadence consolidates it into a single, structured workspace where each release becomes a project with its own calendar, task board, and progress view.
+Most artists juggle this across folders, spreadsheets and chat threads: which mix is final, which track is still in recording, where the artwork is, what the ISRC was. Cadence keeps every release, every track and every file in one place — with progress you can see at a glance.
 
-## Description
+Built by a music producer as the capstone of a Java Full-Stack Developer bootcamp, with the goal of being genuinely usable, not just a demo.
 
-At its core, Cadence models a **release** as a central entity with:
-- A timeline of key dates (recording done, mixing, mastering, artwork, submission, release day, promo push)
-- A set of tasks tied to each milestone, assignable and trackable via a Kanban board
-- A calendar view that aggregates tasks and milestones across all active releases
+## What it does
 
-The application is a full-stack web app with a Vue 3 frontend and a Spring Boot REST API backend, built as a capstone project for a Java Full-Stack Developer Bootcamp — with an eye toward being genuinely usable afterward, not just a demo.
+| Area | Features |
+|---|---|
+| **Artists** | Profiles with bio, avatar and banner |
+| **Releases** | Title, type, phase, dates, label, genre, notes, artwork; filters, search, sort, pagination |
+| **Tracklist** | Songs with gapless positions, drag-and-drop reordering, status, ISRC, explicit flag, lyrics |
+| **Progress** | Release progress derived from song statuses: *Writing → Arrangement → Recording → Mixing & Mastering → Done* |
+| **Audio files** | Several versions per song, one primary; direct browser-to-storage upload up to 500 MB |
+| **Artwork** | Resized for display, original kept for download, metadata stripped |
+| **Security** | Cookie-based JWT with refresh, CSRF protection, per-user ownership on every query |
 
-**Tech stack:**
-- **Frontend:** Vue 3, Vuetify, Tailwind CSS, Axios, Vitest, Playwright
-- **Backend:** Java 21 (LTS), Spring Boot, Spring Web, Spring Data JPA, JWT authentication
-- **Database:** MySQL
+## Tech Stack
 
-## User Flow 
+| Layer | Technology |
+|---|---|
+| Language | Java 25 |
+| Framework | Spring Boot · Spring Web · Spring Security · Spring Data JPA · Bean Validation |
+| Auth | JWT (jjwt) in HttpOnly cookies · BCrypt |
+| Database | PostgreSQL 17 (H2 for quick local runs) |
+| Storage | S3-compatible: MinIO locally, Cloudflare R2 in production · AWS SDK v2 |
+| Media | Thumbnailator for image resizing |
+| Testing | JUnit 5 · Mockito · Hamcrest · MockMvc · Testcontainers · JaCoCo |
+| Tooling | Maven · Docker Compose · mkcert |
+
+## Architecture
+
+Feature-based packages (`auth`, `users`, `artists`, `releases`, `songs`, `storage`, `media`), each layered **Controller → Service → Repository**, with DTOs and mappers at the edges.
+
+| Highlight | Why it matters |
+|---|---|
+| **Rich domain entities** | `ReleaseEntity` owns its tracklist: `addSong`, `removeSong`, `reorderSongs` keep positions gapless |
+| **Ownership by design** | Every lookup goes through `ReleaseFinder` / `SongFinder` scoped to the current user — another user's data returns `404` |
+| **Specifications for filters** | Dynamic queries composed from small `Specification`s, ownership always first |
+| **Direct uploads** | Presigned `PUT` URLs: large audio never passes through the API |
+| **Private bucket** | All media served through short-lived signed URLs, cached and re-signed in advance |
+| **Transaction-safe storage** | Files written to storage are cleaned up if the database transaction rolls back, and deleted only after commit |
+| **Consistent errors** | One global handler, one JSON error shape, `401` vs `403` vs `404` used precisely |
+
+Details: [Architecture](https://github.com/danielmuntyanu/cadence-music-release-planner-backend/wiki/Architecture) · [Class Diagrams](https://github.com/danielmuntyanu/cadence-music-release-planner-backend/wiki/Class-Diagrams) · [API Reference](https://github.com/danielmuntyanu/cadence-music-release-planner-backend/wiki/API-Reference) · [Security](https://github.com/danielmuntyanu/cadence-music-release-planner-backend/wiki/Security)
+
+## User Flow
 
 ```mermaid
+---
+config:
+  theme: neo-dark
+  look: neo
+---
 flowchart TD
-    A[Landing Page] --> B{Has account?}
-    B -- No --> C[Register]
-    B -- Yes --> D[Login]
-    C --> F[Dashboard]
-    D --> F[Dashboard]
+    L([Landing page]) --> A{Has an account?}
+    A -- No --> SU[Sign up]
+    A -- Yes --> LI[Log in]
+    SU --> AR
+    LI --> AR
 
-    F --> V1[Artists View]
-    F --> V2[Releases View]
-    F --> V3[Calendar View]
-    F --> V4[Tasks View]
+    AR["Artists"] --> AD["Artist page"]
+    AR --> RL["Releases"]
+    AD --> RD
+    RL --> RD["Release · Overview"]
 
-    V1 --> V1a[Add / edit artist]
-    V1 --> V1b[Open artist profile]
-    V1b --> V1c[Linked releases for this artist]
-
-    V2 --> V2a[Create new release]
-    V2 --> V2b[Open release detail]
-    V2b --> V2c[Timeline / milestones]
-    V2b --> V2d[Release task board]
-
-    V3 --> V3a[Milestones & tasks across all releases]
-    V3a --> V3b[Open task details]
-    V3a --> V3c[Open milestone details]
-    V3b --> V2d
-    V3c --> V2c
-
-    V4 --> V4a[Global task board across all releases]
-    V4a --> V2b
+    RD --> ED[Edit details · Artwork · Notes]
+    RD --> TL["Release · Tracklist"]
+    TL --> DR[Reorder songs]
+    TL --> SD[Song dialog]
+    SD --> ST[Status · Lyrics · ISRC]
+    SD --> UP[Upload audio versions]
+    UP --> PL[Play release in the global player]
 ```
 
-## MVP Features
+## Quick Start
 
-- **Authentication & Security** — user registration/login, JWT-based auth, protected API routes
-- **Landing Page** — public-facing project introduction and entry point
-- **Release Management** — create, edit, and view releases with core metadata (title, type, target date)
-- **Release Timeline** — define and edit key milestone dates per release
-- **Task Board** — Kanban-style task management scoped to a release (To Do / In Progress / Done)
-- **Calendar View** — unified calendar showing milestones and tasks across all releases
-- **REST API** — documented endpoints covering releases, tasks, and auth
-- **Test Suite** — unit tests (Vitest, JUnit) and E2E coverage (Playwright) for critical flows
+```bash
+docker compose up -d   # PostgreSQL + MinIO
+./mvnw spring-boot:run -Dspring-boot.run.profiles=postgres,minio
+```
+
+API: `https://localhost:8443/api/v1`. Full setup, including local HTTPS: [Get Started](https://github.com/danielmuntyanu/cadence-music-release-planner-backend/wiki/Get-Started).
+
+## Testing
+
+```bash
+./mvnw verify   # tests + JaCoCo report in target/site/jacoco
+```
+
+Domain, unit, web and integration tests — the latter on real PostgreSQL and MinIO via Testcontainers. Results: [Testing](https://github.com/danielmuntyanu/cadence-music-release-planner-backend/wiki/Testing).
 
 ## Roadmap
 
-### Phase 1 — Foundation
-- Project initialization (frontend + backend scaffolding, CI setup)
-- Authentication & authorization (JWT, protected routes)
-- Landing page
+| Status | Phase | Scope |
+|---|---|---|
+| ✅ | **Foundation** | Project setup, cookie-based JWT auth, landing page |
+| ✅ | **Artists & Releases** | CRUD, filters, artwork, release detail |
+| ✅ | **Tracklist & Files** | Songs, statuses, ordering, audio uploads, global player |
+| 🔜 | **Tasks & Events** | Tasks per release, key dates, calendar view |
+| 🔜 | **Pitching** | Pitch windows and submissions to playlists and press |
+| 💡 | **Later** | Reminders, collaborators, AI assistance for metadata and promo |
 
-### Phase 2 — Releases
-- Release entity CRUD
-- Release timeline / milestone structure
-- Release detail view
+## Author
 
-### Phase 3 — Planning
-- Task creation and Kanban board per release
-- Calendar view aggregating tasks and milestones
-- Task-to-milestone linking
-
-### Phase 4 — Post-MVP
-- File attachments (artwork, mix references)
-- Notifications/reminders for upcoming milestones
-- AI-features to improve creativity and efficiency
+**Daniel Muntyanu** — [GitHub](https://github.com/danielmuntyanu)
