@@ -4,14 +4,19 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
 
+import dev.danyil.media.MediaUrlResolver;
 import dev.danyil.users.UserEntity;
 import dev.danyil.users.UserProfileEntity;
 import dev.danyil.users.dtos.UserAdministrationResponseDTO;
 import dev.danyil.users.dtos.UserCurrentResponseDTO;
 import dev.danyil.users.dtos.UserResponseDTO;
+import lombok.RequiredArgsConstructor;
 
 @Component 
+@RequiredArgsConstructor 
 public class UserMapper {
+
+    private final MediaUrlResolver media;
 
     public UserResponseDTO toResponse(UserEntity user, UserProfileEntity profile) {
         return UserResponseDTO.builder()
@@ -29,7 +34,7 @@ public class UserMapper {
             .username(user.getUsername())
             .email(user.getEmail())
             .displayName(profile.getDisplayName())
-            .avatarUrl(profile.getAvatarUrl())
+            .avatarUrl(media.resolve(profile.getAvatarKey(), profile.getAvatarUrl()))
             .bio(profile.getBio())
             .roles(
                 user.getRoles().stream()

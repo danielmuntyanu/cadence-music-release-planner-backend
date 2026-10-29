@@ -1,0 +1,132 @@
+{"properties": [
+  {
+    "name": "api-endpoint",
+    "type": "java.lang.String",
+    "description": "A description for 'api-endpoint'"
+  },
+  {
+    "name": "cookie-same-site",
+    "type": "java.lang.String",
+    "description": "A description for 'cookie-same-site'"
+  },
+  {
+    "name": "frontend-domain",
+    "type": "java.lang.String",
+    "description": "A description for 'frontend-domain'"
+  },
+  {
+    "name": "access-token-duration-minutes",
+    "type": "java.lang.String",
+    "description": "A description for 'access-token-duration-minutes'"
+  },
+  {
+    "name": "refresh-token-duration-days",
+    "type": "java.lang.String",
+    "description": "A description for 'refresh-token-duration-days'"
+  },
+  {
+    "name": "stripe.success.url",
+    "type": "java.lang.String",
+    "description": "A description for 'stripe.success.url'"
+  },
+  {
+    "name": "stripe.api.key",
+    "type": "java.lang.String",
+    "description": "A description for 'stripe.api.key'"
+  },
+  {
+    "name": "jwt-secret",
+    "type": "java.lang.String",
+    "description": "A description for 'jwt-secret'"
+  },
+  {
+    "name": "stripe.cancel.url",
+    "type": "java.lang.String",
+    "description": "A description for 'stripe.cancel.url'"
+  },
+  {
+    "name": "access-cookie-name",
+    "type": "java.lang.String",
+    "description": "A description for 'access-cookie-name'"
+  },
+  {
+    "name": "refresh-cookie-name",
+    "type": "java.lang.String",
+    "description": "A description for 'refresh-cookie-name'"
+  },
+  {
+    "name": "storage.endpoint",
+    "type": "java.lang.String",
+    "description": "A description for 'storage.endpoint'"
+  },
+  {
+    "name": "storage.public-endpoint",
+    "type": "java.lang.String",
+    "description": "A description for 'storage.public-endpoint'"
+  },
+  {
+    "name": "storage.secret-key",
+    "type": "java.lang.String",
+    "description": "A description for 'storage.secret-key'"
+  },
+  {
+    "name": "storage.access-key",
+    "type": "java.lang.String",
+    "description": "A description for 'storage.access-key'"
+  },
+  {
+    "name": "storage.region",
+    "type": "java.lang.String",
+    "description": "A description for 'storage.region'"
+  },
+  {
+    "name": "storage.public-base-url",
+    "type": "java.lang.String",
+    "description": "A description for 'storage.public-base-url'"
+  },
+  {
+    "name": "storage.auto-create-buckets",
+    "type": "java.lang.String",
+    "description": "A description for 'storage.auto-create-buckets'"
+  },
+  {
+    "name": "storage.public-bucket",
+    "type": "java.lang.String",
+    "description": "A description for 'storage.public-bucket'"
+  },
+  {
+    "name": "storage.private-bucket",
+    "type": "java.lang.String",
+    "description": "A description for 'storage.private-bucket'"
+  },
+  {
+    "name": "storage.bucket",
+    "type": "java.lang.String",
+    "description": "A description for 'storage.bucket'"
+  },
+  {
+    "name": "storage.signed-url-ttl",
+    "type": "java.lang.String",
+    "description": "A description for 'storage.signed-url-ttl'"
+  },
+  {
+    "name": "storage.auto-create-bucket",
+    "type": "java.lang.String",
+    "description": "A description for 'storage.auto-create-bucket'"
+  },
+  {
+    "name": "storage.audio.max-bytes",
+    "type": "java.lang.String",
+    "description": "A description for 'storage.audio.max-bytes'"
+  },
+  {
+    "name": "storage.audio.upload-url-ttl",
+    "type": "java.lang.String",
+    "description": "A description for 'storage.audio.upload-url-ttl'"
+  },
+  {
+    "name": "storage.download-url-ttl",
+    "type": "java.lang.String",
+    "description": "A description for 'storage.download-url-ttl'"
+  }
+]}

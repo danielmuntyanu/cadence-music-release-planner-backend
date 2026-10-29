@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 import java.util.List;
@@ -12,6 +13,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -20,13 +22,17 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import dev.danyil.enums.UserRole;
 import dev.danyil.mappers.UserMapper;
+import dev.danyil.media.ImageUploadService;
 import dev.danyil.users.dtos.UserAdministrationResponseDTO;
 import dev.danyil.users.dtos.UserCurrentResponseDTO;
 import dev.danyil.users.dtos.UserRequestCreateDTO;
+import dev.danyil.users.dtos.UserRequestPasswordDTO;
+import dev.danyil.users.dtos.UserRequestUpdateDTO;
 import dev.danyil.users.dtos.UserResponseDTO;
 import dev.danyil.users.exceptions.CurrentUserNotFoundException;
 import dev.danyil.users.exceptions.ProfileNotFoundException;
@@ -38,16 +44,19 @@ class UserServiceImplTest {
 
     private static final String RAW_PASSWORD = "password123";
 
-    @Mock 
+    @Mock
     private UserProfileRepository userProfileRepository;
-    @Mock 
+    @Mock
     private UserRepository userRepository;
-    @Mock 
+    @Mock
     private UserMapper userMapper;
-    @Mock 
+    @Mock
     private PasswordEncoder passwordEncoder;
+    @Mock
+    private ImageUploadService imageUploads;
 
-    @InjectMocks private UserServiceImpl userService;
+    @InjectMocks
+    private UserServiceImpl userService;
 
     // ---------- helpers ----------
 
@@ -58,8 +67,27 @@ class UserServiceImplTest {
         return u;
     }
 
+    private static UserEntity userWithEmail(Long id, String username, String email) {
+        UserEntity u = user(id, username);
+        u.setEmail(email);
+        return u;
+    }
+
+    private static UserProfileEntity profile(UserEntity owner, String displayName, String bio) {
+        UserProfileEntity p = new UserProfileEntity();
+        p.setUser(owner);
+        p.setDisplayName(displayName);
+        p.setBio(bio);
+        return p;
+    }
+
+    private static UserRequestUpdateDTO update(String username, String email,
+            String displayName, String bio, String avatarUrl) {
+        return new UserRequestUpdateDTO(username, email, displayName, bio, avatarUrl);
+    }
+
     private static UserRequestCreateDTO request(String username, String email,
-                                                String displayName, String bio) {
+            String displayName, String bio) {
         return new UserRequestCreateDTO(username, email, RAW_PASSWORD, displayName, bio);
     }
 
@@ -155,7 +183,7 @@ class UserServiceImplTest {
 
         userService.register(req);
 
-        // проверки exists идут по нормализованным значениям
+        // Uniqueness checks use the normalized values
         verify(userRepository).existsByUsername("daniel");
         verify(userRepository).existsByEmail("daniel@mail.com");
 
@@ -324,5 +352,206 @@ class UserServiceImplTest {
 
         assertThrows(UserNotFoundException.class, () -> userService.updateLocked(99L, true));
         verifyNoInteractions(userMapper);
+    }
+
+    // ---------- update ----------
+
+    @Test
+    void update_onlyProvidedFieldsAreChanged() {
+        UserEntity user = userWithEmail(1L, "daniel", "daniel@mail.com");
+        UserProfileEntity profile = profile(user, "Dan", "old bio");
+        UserCurrentResponseDTO expected = mock(UserCurrentResponseDTO.class);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userProfileRepository.findById(1L)).thenReturn(Optional.of(profile));
+        when(userMapper.toCurrentUser(user, profile)).thenReturn(expected);
+
+        UserCurrentResponseDTO result = userService.update(1L, update(null, null, null, "new bio", null));
+
+        assertThat(profile.getBio(), is("new bio"));
+        assertThat(profile.getDisplayName(), is("Dan"));
+        assertThat(user.getUsername(), is("daniel"));
+        assertThat(user.getEmail(), is("daniel@mail.com"));
+        assertThat(result, sameInstance(expected));
+    }
+
+    @Test
+    void update_blankFields_areIgnored() {
+        UserEntity user = userWithEmail(1L, "daniel", "daniel@mail.com");
+        UserProfileEntity profile = profile(user, "Dan", "bio");
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userProfileRepository.findById(1L)).thenReturn(Optional.of(profile));
+
+        userService.update(1L, update("  ", "", " ", "   ", " "));
+
+        assertThat(user.getUsername(), is("daniel"));
+        assertThat(user.getEmail(), is("daniel@mail.com"));
+        assertThat(profile.getDisplayName(), is("Dan"));
+        assertThat(profile.getBio(), is("bio"));
+    }
+
+    @Test
+    void update_trimsUsernameAndNormalizesEmail_likeRegister() {
+        UserEntity user = userWithEmail(1L, "daniel", "daniel@mail.com");
+        UserProfileEntity profile = profile(user, "Dan", null);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userProfileRepository.findById(1L)).thenReturn(Optional.of(profile));
+
+        userService.update(1L, update("  dan  ", "  Dan@Mail.COM ", null, null, null));
+
+        assertThat(user.getUsername(), is("dan"));
+        assertThat(user.getEmail(), is("dan@mail.com"));
+    }
+
+    @Test
+    void update_usernameTakenByAnotherUser_throwsAndKeepsOldUsername() {
+        UserEntity user = userWithEmail(1L, "daniel", "daniel@mail.com");
+        UserProfileEntity profile = profile(user, "Dan", null);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        lenient().when(userProfileRepository.findById(1L)).thenReturn(Optional.of(profile));
+        when(userRepository.existsByUsername("taken")).thenReturn(true);
+
+        UserAlreadyExistsException ex = assertThrows(UserAlreadyExistsException.class,
+                () -> userService.update(1L, update("taken", null, null, null, null)));
+
+        assertThat(ex.getField(), is("username"));
+        assertThat(user.getUsername(), is("daniel"));
+    }
+
+    @Test
+    void update_emailTakenByAnotherUser_throwsAndKeepsOldEmail() {
+        UserEntity user = userWithEmail(1L, "daniel", "daniel@mail.com");
+        UserProfileEntity profile = profile(user, "Dan", null);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        lenient().when(userProfileRepository.findById(1L)).thenReturn(Optional.of(profile));
+        when(userRepository.existsByEmail("taken@mail.com")).thenReturn(true);
+
+        UserAlreadyExistsException ex = assertThrows(UserAlreadyExistsException.class,
+                () -> userService.update(1L, update(null, "taken@mail.com", null, null, null)));
+
+        assertThat(ex.getField(), is("email"));
+        assertThat(user.getEmail(), is("daniel@mail.com"));
+    }
+
+    @Test
+    void update_sameUsernameAndEmail_doNotCountAsTaken() {
+        // The user's own username and email exist in the database, but they are not a
+        // conflict.
+        UserEntity user = userWithEmail(1L, "daniel", "daniel@mail.com");
+        UserProfileEntity profile = profile(user, "Dan", null);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userProfileRepository.findById(1L)).thenReturn(Optional.of(profile));
+        lenient().when(userRepository.existsByUsername("daniel")).thenReturn(true);
+        lenient().when(userRepository.existsByEmail("daniel@mail.com")).thenReturn(true);
+
+        userService.update(1L, update("daniel", "daniel@mail.com", "New Name", null, null));
+
+        assertThat(profile.getDisplayName(), is("New Name"));
+    }
+
+    @Test
+    void update_userMissing_throwsAndSkipsProfile() {
+        when(userRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(UserNotFoundException.class,
+                () -> userService.update(99L, update("dan", null, null, null, null)));
+
+        verifyNoInteractions(userProfileRepository, userMapper);
+    }
+
+    @Test
+    void update_profileMissing_throws() {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user(1L, "daniel")));
+        when(userProfileRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThrows(ProfileNotFoundException.class,
+                () -> userService.update(1L, update(null, null, null, "bio", null)));
+
+        verifyNoInteractions(userMapper);
+    }
+
+    // ---------- updatePassword ----------
+
+    @Test
+    void updatePassword_correctCurrentPassword_storesNewHash() {
+        UserEntity user = user(1L, "daniel");
+        user.setPasswordHash("old-hash");
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("current123", "old-hash")).thenReturn(true);
+        when(passwordEncoder.encode("newPassword123")).thenReturn("new-hash");
+
+        userService.updatePassword(1L, new UserRequestPasswordDTO("current123", "newPassword123"));
+
+        assertThat(user.getPasswordHash(), is("new-hash"));
+    }
+
+    @Test
+    void updatePassword_wrongCurrentPassword_throwsAndKeepsOldHash() {
+        UserEntity user = user(1L, "daniel");
+        user.setPasswordHash("old-hash");
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("wrong", "old-hash")).thenReturn(false);
+
+        assertThrows(BadCredentialsException.class,
+                () -> userService.updatePassword(1L, new UserRequestPasswordDTO("wrong", "newPassword123")));
+
+        assertThat(user.getPasswordHash(), is("old-hash"));
+        verify(passwordEncoder, never()).encode(anyString());
+    }
+
+    @Test
+    void updatePassword_userMissing_throwsAndChecksNothing() {
+        when(userRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(UserNotFoundException.class,
+                () -> userService.updatePassword(99L, new UserRequestPasswordDTO("current123", "newPassword123")));
+
+        verifyNoInteractions(passwordEncoder);
+    }
+
+    // ---------- delete ----------
+
+    @Test
+    void delete_removesProfileBeforeUser() {
+        UserEntity user = user(1L, "daniel");
+        UserProfileEntity profile = profile(user, "Dan", null);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userProfileRepository.findById(1L)).thenReturn(Optional.of(profile));
+
+        userService.delete(1L);
+
+        // The profile references the user, so it must go first.
+        InOrder order = inOrder(userProfileRepository, userRepository);
+        order.verify(userProfileRepository).delete(profile);
+        order.verify(userRepository).delete(user);
+    }
+
+    @Test
+    void delete_userMissing_throwsAndDeletesNothing() {
+        when(userRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(UserNotFoundException.class, () -> userService.delete(99L));
+
+        verify(userRepository, never()).delete(any());
+        verifyNoInteractions(userProfileRepository);
+    }
+
+    @Test
+    void delete_profileMissing_throwsAndDeletesNothing() {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user(1L, "daniel")));
+        when(userProfileRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThrows(ProfileNotFoundException.class, () -> userService.delete(1L));
+
+        verify(userRepository, never()).delete(any());
+        verify(userProfileRepository, never()).delete(any());
     }
 }

@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.TestPropertySource;
@@ -22,6 +23,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
+import dev.danyil.TestcontainersConfiguration;
 import dev.danyil.enums.UserRole;
 import dev.danyil.users.UserEntity;
 import dev.danyil.users.UserProfileEntity;
@@ -33,6 +35,7 @@ import jakarta.servlet.http.Cookie;
 @AutoConfigureMockMvc
 @TestPropertySource(properties = "csrf-cookie-test=true")
 @Transactional
+@Import(TestcontainersConfiguration.class)
 class CsrfCookieIntegrationTest {
 
     private static final String USERNAME = "csrf-admin";
@@ -104,7 +107,7 @@ class CsrfCookieIntegrationTest {
                 .cookie(accessToken, csrfToken)
                 .header("X-XSRF-TOKEN", csrfToken.getValue())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"make_locked\": true}"))
+                .content("{\"makeLocked\": true}"))
             .andExpect(status().isNotFound());
     }
 
